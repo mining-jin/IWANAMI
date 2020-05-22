@@ -1,0 +1,29 @@
+##pp.31
+>juman -b -f <イズムの功過_new.txt
+##pp.32
+>juman -b -f <イズムの功過_new.txt >イズムの功過_juman.txt
+##pp.35
+>juman|knp
+太郎は花子と一緒に学校に行った．
+##pp.36
+>juman|knp -tab
+太郎は花子と一緒に学校に行った．
+##pp.37
+>cabocha
+太郎は花子と一緒に学校に行った．
+>cabocha -f1
+太郎は花子と一緒に学校に行った．
+
+##pp.41
+## jiebaRによる中国語形態素解析の例
+>library(jiebaR)
+>words = "我们想试一试形态素解析"
+>tagger = worker("tag")
+>tagger <= words
+
+##pp.42
+##KoNLPによる韓国語形態素解析の例
+>library(KoNLP)
+>text<-"전역에 확대하는 기폭제가 될 것이라는 점에서 비상한 관심을 끌고 있다."
+>res<-SimplePos09(text)#ここに用いるのは9種類の品詞からなる体系である．22種類の品詞からなる体系を用いたい場合，SimplePos22を使うと良い.
+>unlist(res) 

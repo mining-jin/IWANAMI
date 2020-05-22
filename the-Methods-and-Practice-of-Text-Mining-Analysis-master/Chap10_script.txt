@@ -1,0 +1,106 @@
+##p.336
+data<-list(c("パン","牛乳","ハム","果物"),
+            c("パン","オムツ","ビール","ハム"),
+            c("ソーセージ","ビール","オムツ"),
+            c("弁当","ビール","オムツ","タバコ"),
+            c("弁当","ビール","オレンジジュース","果物"))
+
+install.packages("arules")
+library(arules)
+data.tran<- as(data, "transactions")
+
+
+##p.364
+class(data.tran)
+as(data.tran,"matrix")
+as(data.tran,"data.frame")
+
+##p.365
+itemFrequencyPlot(data.tran,type = "absolute")
+
+####例19.1
+##366
+data.ap<-apriori(data.tran)
+ap.s<-sort(data.ap, by = "support")
+inspect(ap.s[1:4])
+
+##p.367
+data.ap1<-apriori(data.tran,parameter = list(supp =0.2,maxlen=3))
+inspect(head(sort(data.ap1, by = "support"), n = 20))
+
+###ルールの視覚化
+##p.368
+install.packages("arulesViz")
+library(arulesViz)
+plot(data.ap1, method="grouped")			#図19.2を作成
+plot(data.ap1, method ="graph")				#図19.3(a)を作成
+plot(data.ap1, method ="graph",interactive =TRUE)	#図19.3(b)を作成
+
+###例19.2
+##p.369
+data(Income)
+Income
+itemFrequencyPlot(Income,cex=0.8,col="lightblue")
+par(mar=c(4.5,2,1,2), cex=0.65,cex.axis=0.7)
+itemFrequencyPlot(Income, col="lightblue")		#図19.4を作成
+itemFrequencyPlot(Income, col="lightblue",horiz=TRUE)
+
+##p.370
+Income.ap<-apriori(Income)
+summary(Income.ap)
+
+##p.372
+Income.ap2 <- subset(Income.ap, subset =  rhs %in% "income=$40,000+" & lift>2 )
+Income.ap2
+inspect(Income.ap2[1:3])
+Income.ap3<-subset(Income.ap, subset = lhs %pin% "education" & rhs %pin% "income" )
+inspect(sort(Income.ap3,by="lift")[1:2])
+
+
+###例19.3
+##p.274
+data(Groceries)
+par(mar=c(4.5,2,1,2), cex=0.65,cex.axis=0.7)
+itemFrequencyPlot(Groceries[,18.5],cex=0.65,col="lightblue",horiz=TRUE)
+itemFrequencyPlot(Groceries[,56:110],cex=0.65,col="lightblue",horiz=TRUE)
+itemFrequencyPlot(Groceries[,111:169],cex=0.65,col="lightblue",horiz=TRUE)
+
+Gr.ap<-apriori(Groceries)
+Gr.ap <-apriori(Groceries, parameter=list(support=0.005,confidence = 0.01))
+beefRules <- subset(Gr.ap, subset = rhs %in% "beef")
+inspect(sort(beefRules,by="confidence")[1:3])
+
+
+###19.3
+##例19-4
+##p.375
+data.ec<-eclat(data.tran)
+inspect(sort(data.ec,by="support")[1:4])
+
+data.ec2 <- data.ec [size(data.ec) ==2]
+inspect(sort(data.ec2,by="support")[1:5])
+
+###例19.5
+##p.375
+Income.ec<-eclat(Income)
+
+##p.376
+Income.ec2 <- subset(Income.ec,subset =  items %in% "income=$40,000+" & support>0.2 & size(items)>2)
+Income.ec2
+inspect(sort(Income.ec2,by="support")[1:2])
+
+###19.4
+##p.376
+rules.sub <- subset(Income.ap, subset = rhs %in% "income=$40,000+" & lift>2 )
+d<-dissimilarity(rules.sub, method = "jaccard")
+plot(hclust(d,"ward.D"),hang=-1)
+
+##p.377
+class1<-hclust(d,"ward.D")$order[1:10]
+inspect(rules.sub[class1])
+
+class2<-hclust(d,"ward.D")$order[11:16]
+inspect(rules.sub[class2])
+
+################################
+

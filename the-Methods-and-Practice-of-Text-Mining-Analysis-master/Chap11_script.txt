@@ -1,0 +1,872 @@
+####spamデータセット
+install.packages(c("kernlab","caret","class"))
+library(kernlab)
+ data(spam)
+ dim(spam)
+#[1] 4601   58
+ str(spam)
+
+
+#作成した分類モデルを用いて予測のプロセスを体験するため、データspamを学習データとテスト用のデータに分ける。10分の1をテスト用とすることにする。
+m<-round(nrow(spam)/10)
+set.seed(1)
+sp<-sample(1:nrow(spam),m)
+train_data<-spam[-sp,]
+test_data<-spam[sp,]
+
+#kNN法による学習
+##方法1：knn{class}を用いる
+#k=3の場合
+library(class)
+knn.md1<-knn(train_data[,-58],test_data[,-58],train_data[,58],k=3)
+#混同行列および正解率、Kappa係数などを返す
+conM<-table(knn.md1,test_data[,58])
+#install.packages("caret",dep=T)
+library(caret)
+confusionMatrix(conM,mode = "prec_recall")
+
+####データを標準化して行う
+##学習データとテストデータをまとめて標準かする
+train1<-data.frame(scale(train_data[,-58]),type=train_data$type)
+test1<-data.frame(scale(test_data[,-58]),type=test_data$type)
+knn.md2<-knn(train1[,-58],test1[,-58],　train1[,58],k=3)
+conM<-table(knn.md2,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+##学習データにテストデータを加えて標準化し、切り分ける
+dat<-scale(rbind(train_data,test_data)[,-58])
+nl<-nrow(train_data)
+train3<-data.frame(dat[1:nl,],type=train_data$type)
+test3<-data.frame(dat[-c(1:nl),],type=test_data$type)
+knn.md3<-knn(train3[,-58],test3[,-58],　train3[,58],k=3)
+conM<-table(knn.md3test_data[,58]) 
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+
+##変数1～54まで用いた場合
+train_data2<-train_data[,-c(54:57)]
+test_data2<-test_data[,-c(54:57)]
+knn.md3<-knn(train_data2[,1:53],test_data2[,1:53],train_data2[,54],k=3)
+#混同行列および正解率、Kappa係数などを返す
+conM<-table(knn.md3test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+##方法2　train{caret}
+#install.packages("caret",dep=TRUE)
+library(caret)
+##変数54～57を削除したtrain_data2,test_dat2を用いる。
+knn.md4 <- train(
+  type~ ., 
+  data = train_data2, 
+  method = "knn", 
+  tuneGrid = expand.grid(k = c(1:10)),
+  preProcess = c('center', 'scale'),
+  trControl =trainControl(method = "CV", classProbs = TRUE, 
+                       summaryFunction = multiClassSummary)
+)
+
+colnames(knn.md4$results)
+round(knn.md4$results[,c("k","AUC","Accuracy","Kappa",　"Precision","Recall","F1")],3)
+
+##学習モデルを用いた予測
+pre.knn<-predict(knn.md4,test_data2)
+conM<-table(pre.knn,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+##library(ModelMetrics)の関数を用いてAUCを求める
+ModelMetrics::auc(pre.knn,test_data2[,54])
+
+###############線形判別分析
+library(MASS)
+lda.mod1<-lda(type~ ., data = train_data2)
+##作成したモデルの評価指標を確認してみよう。
+pre.mod1<-predict(lda.mod1)        　　　　 #学習データの判別結果
+conM<-table(pre.mod1$class,train_data2[,54]) #学習データの判別結果の混同表
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+##学習モデルを用いた予測
+pre.mod2<-predict(lda.mod1,test_data2)
+conM<-table(pre.mod2$class,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+ModelMetrics::auc(test_data[,54],pre_spam.lda)
+
+##方法2：train{caret}を用いて交差検証行うする
+##線形判別分析には指定すべきパラメータがないため、チューニングや交差確認は必要がない。
+##もし、学習データにおける判別状況を考察したいのであれば、交差確認を指定してもよい。
+lda.mod2 <- train(type~ ., data = train_data2, 
+#  metric = "ROC", 
+  method = "lda",
+preProcess = c('center', 'scale'),
+ trControl =trainControl(method = "CV", classProbs = TRUE, 
+                       summaryFunction = multiClassSummary)
+)
+round(lda.mod2$results[,c("AUC","Accuracy","Kappa",　"Precision","Recall","F1")],4)
+
+pre.mod3<-predict(lda.mod2,test_data2)
+conM<-table(pre.mod3,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+#######係数の分析
+##上記の関数trainで用いた引数method="lda"はパッケージMASSの中の関数ldaを用いている
+library(MASS)
+spam.lda2<-lda(type~ ., data = spam)
+##求めた係数はspam.lda2$scalingに保存している。
+coef1<-spam.lda2$scaling
+coef<-coef1[sort.list(coef1,dec=TRUE),]
+par(mar=c(4,10,2,2))
+barplot(coef[c(1:15,43:57)],las=2,horiz =T,cex.names=0.9,col=rep(3:4,each=15))
+text(-0.5,10,"スパームメール\nの特徴要素",cex=1.5)
+text(-0.5,25,"ノンスパームメール\nの特徴要素",cex=1.5)
+
+
+lattice::dotplot(~coef[c(1:15,43:57)])
+minX<-min(coef[c(1:15,43:57)])-0.1
+text(minX,10,"スパームメール\nの特徴要素",cex=1.5)
+text(minX,25,"ノンスパームメール\nの特徴要素",cex=1.5)
+
+yhat<-predict(spam.lda2, data = spam)
+scoa<-data.frame(y=train_data[,58],yhat[[1]],yhat[[2]],yhat[[3]])
+head(scoa)
+
+#定数項がある係数
+beta_zero<-apply(spam.lda2$means%*%spam.lda2$scaling,2,mean)
+yhat2<-as.matrix(train_data[,-58])%*%spam.lda2$scaling[,1]-beta_zero
+
+
+########多項ロジスティック回帰
+library(nnet)
+set.seed(100)
+mu1<-multinom(type~ ., data = train_data2)
+coef(mu1)
+coef1<-sort(coef(mu1)[-1])[c(1:15,43:57)]
+par(mar=c(4,10,2,2))
+barplot(coef1,horiz =T,las=2,col=c(rep(3,15),rep(4,15)))
+
+#データの判別
+pre.mu1<-predict(mu1)
+conM<-table(pre.mu1,train_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+#テストデータの判別
+pre.mu2<-predict(mu1,test_data2)
+conM<-table(pre.mu2,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+##関数trainを用いる
+mu2 <- train(type~ ., data = train_data2, 
+  method = "multinom", 
+  preProcess = c('center', 'scale'),
+  trControl =trainControl(method = "CV", classProbs = TRUE, 
+                       summaryFunction = multiClassSummary)
+)
+mu2   #計算結果を返す。ペナルティの値は decay = 1e-04を推奨している。
+
+round(mu2$results[,c("decay","AUC","Accuracy","Kappa",　"Precision","Recall","F1")],4)
+
+##テストデータを用いた予測は関数predictを用いる
+pre.mu2<-predict(mu2,　test_data2[,-54])
+
+##混同行列および正解率、Kappa係数などを返す
+conM<-table(pre.mu2,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+######ナイーブベイズ法
+
+library(naivebayes)
+nb1<-multinomial_naive_bayes(as.matrix(train_data2[,-54]),train_data2[,54],laplas=0)
+pre.nb1<-predict(nb1,as.matrix(test_data2[,-54]),type = "class")
+conM<-table(pre.nb1,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+###trao
+nb2 <- train(type~ ., data = train_data2, 
+ method = "naive_bayes", 
+  trControl =trainControl(method = "CV", classProbs = TRUE, 
+                       summaryFunction = multiClassSummary)
+)
+nb2$results[,c("usekernel","AUC","Accuracy","Kappa",　"Precision","Recall","F1")]
+
+
+##テストデータを用いた予測は関数predictを用いる
+pre.nb2<-predict(nb2,　test_data2[,-54])
+
+##混同行列および正解率、Kappa係数などを返す
+conM<-table(pre.nb2,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+###KSVM法
+#方法1：パラメータのチューニングはせず、デフォルトのまま計算する。
+library(kernlab)
+ksvm1<-ksvm(type~ ., data = train_data2)
+pre.ksvm1<-predict(ksvm1,test_data2)
+conM<-table(pre.ksvm1,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+#trainControl(method = "repeatedcv", number = 10, repeats =2)
+
+fitControl <- trainControl(method = "CV", classProbs = TRUE, 
+                       summaryFunction = multiClassSummary)
+tGrid       <-  expand.grid(sigma=(1:4)*0.01, C= 1:5)
+start_time <- Sys.time()
+ksvm2 <- train(type~ ., data = train_data2, 
+  		   method="svmRadial",
+                   trControl = fitControl, 
+                   tuneGrid = tGrid 
+)
+end_time <- Sys.time()	#終了
+end_time - start_time
+
+round(ksvm2$results[,c("sigma","C","AUC","Accuracy","Kappa",　"Precision","Recall","F1")],4)
+plot(ksvm2)
+
+pre.ksvm2<-predict(ksvm2,test_data2)
+conM<-table(pre.ksvm2,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+##ツリーモデル
+library(rpart)
+library(rpart.plot)
+data<-"http://mjin.doshisha.ac.jp/iwanami/data/sb3.csv"
+sb3<-read.csv(data, row.names=1)
+dim(sb3)
+
+
+sb3.rp<-rpart(y~., sb3, minsplit=6)   
+plot(sb3.rp, branch=0.6, margin=rep(0.05,4),uniform = TRUE)
+text(sb3.rp,　use.n=TRUE)
+library(rpart.plot)
+rpart.plot(sb3.rp,digits =4)
+print(sb3.rp,dist=2)
+
+###データspamのツリーモデル
+spam.rp<-rpart(type~., train_data2)
+pre.rp<-predict(spam.rp,test_data2,type="class")
+conM<-table(pre.rp,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+##エイダーブースト
+install.packages("adabag")
+library(adabag)
+start_time<- Sys.time()
+tr.toost<-boosting(type~.,data=train_data)  #,coeflearn="Zhu")
+pre.boost<-predict(tr.toost, test_data[,-58])
+conM<-table(pre.boost$class,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+end_time <- Sys.time()　　#終了のときの時間
+end_time - start_time　　　#計算にかかった時間
+#変数の重要度のグラフ
+dotplot(sort(tr.toost$importance), scales = list(y = list(cex=0.6)))
+
+
+
+tr.toost<-boosting(type~.,data=train_data, mfinal=3, coeflearn="Zhu",maxdepth=6)
+pre.boost<-predict(tr.toost, test_data[,-58])
+conM<-table(pre.boost$class,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+#####
+start_time<- Sys.time()
+tr.boost <- train(type~ ., data = train_data2, 
+method ="adaboost",
+  trControl = trainControl(method = "cv"),
+)
+end_time <- Sys.time()　　#終了のときの時間
+end_time - start_time　　　#計算にかかった時間
+################
+> end_time - start_time　　　#計算にかかった時間
+Time difference of 23.79088 mins
+> 
+################
+引数のmethod="AdaBoost.M1"にすると"Breiaman","Freund","Zhu"の三種類の方法に対し、計算回数50,100,150,木の深さ１，２，３についてグライドサーチを行う。約１時間必要である。
+
+> dotPlot(varImp(tr.boost,n=30))
+
+pre.boost<-predict(tr.toost, test_data[,-58])
+conM<-table(pre.boost$class,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+####GXboost
+gxboost <- train(type~ ., data = train_data2, 
+method = "xgbTree",  
+  preProcess = c('center', 'scale'),
+  trControl = trainControl(method = "cv"),
+)
+
+#### 
+gbm.boost <- train(type~ ., data = train_data2, 
+  method = "gbm",  #Gradient Boosting Machine
+  preProcess = c('center', 'scale'),
+  trControl = trainControl(method = "cv"),
+  tuneLength = 4
+)
+pre.boost<-predict(gbm.boost, test_data[,-58])
+conM<-table(pre.boost,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+####ランダムフォレスト
+library(randomForest)
+rf<-randomForest(type~.,train_data2,ntree=1000,importance=TRUE)
+pre.rf<-predict(rf,test_data2)
+conM<-table(pre.rf,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+plot(rf)
+text(400,rf$err.rate[1000,3]+0.005,"spam")
+text(400,rf$err.rate[1000,2]+0.005,"nonspam")
+text(400,rf$err.rate[1000,1]+0.005,"OOB")
+
+> varImpPlot(rf)
+
+pre.rf2<-predict(rf,data_test2)
+conM<-table(pre.rf2,test_data2[,54])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+> rf2<-train(type~.,train_data2,method="rf",trControl =trainControl(method = "CV", classProbs = TRUE, 
+                        summaryFunction = multiClassSummary))
+
+###
+library(nnet)
+
+> multinom(y~.,data=sb[,c(1:10,48)])
+
+
+##木の選定とコントロール
+set.seed(0)
+iris.rp2<-rpart(Species~.,iris, minsplit = 3, cp = 0)　 #最大の木を生成する
+printcp(iris.rp2)
+plotcp(iris.rp2)			#グラフを作成し，剪定の必要性を考察する
+
+printcp(iris.rp)
+iris.rp3<-prune(iris.rp2,cp=0.094)
+plot(iris.rp3,uniform=T,margin=0.05)
+text(iris.rp3, use.n=T)
+
+####ニューラルネットワーク
+library(nnet)
+nnet1<-nnet(type~.,size=5,train_data,softmax=TRUE,trace =FALSE)
+pre.nnet<-predict(nnet1, test_data[,-58],type="class")
+conM<-table(pre.nnet,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+###ニューラルネットワークのグラフ
+install.packages("NeuralNetTools")
+library(NeuralNetTools)
+ plotnet(nnet2)
+
+library(neuralnet)
+nnet3<-neuralnet(type~., train_data[c(1:100,4000:4100),c(1:5,58)],hidden = c(4, 3))
+plot(nnet3)
+
+####チューニング
+ctrl = trainControl(method="cv", number=10)
+set.seed=(12345)
+start_time<- Sys.time()
+t.grid=expand.grid(size=3:10,decay=(0:6)*0.1)
+nnet4 = train(type~ .,data=train_data,method="nnet",trControl=ctrl,
+tuneGrid=t.grid,trace =FALSE) 
+end_time <- Sys.time()　　#終了のときの時間
+end_time - start_time　　　#計算にかかった時間
+
+#Time difference of 20.12354 mins 
+
+pre.nnet<-predict(nnet4, test_data[,-58])
+conM<-table(pre.nnet,test_data[,58])
+caret::confusionMatrix(conM,mode = "prec_recall")
+
+
+plot(nnet4,pos.col='blue',neg.col='red',circle.cex=7)
+
+
+install.packages(c("pls","C50","randomForest","nnet","kernlab","class","adabag","caret"),dep=TRUE)
+
+library(pls)
+#library(ggplot2)
+library(kernlab)
+library(randomForest)
+library(C50)
+library(nnet)
+library(rpart)
+library(class)
+library(adabag)
+library(naivebayes)
+
+
+install.packages("h2o", repos=(c("http://s3.amazonaws.com/h2o-release/h2o/rel-kahan/5/R", getOption("repos"))))
+library(h2o)
+localH2O = h2o.init()
+
+data(spam)
+nr<-nrow(spam)
+k=10   #繰り返し回数
+m=11
+res<-matrix(0,k,m)
+ta<-matrix(0,2,2)
+cv<-cvsegments(nr,k=k)   #library(pls)
+
+for(i in 1:k){
+cnum<-unlist(cv[i])
+x<-as.matrix(spam[-cnum,-58])
+y<-spam[-cnum,58]
+xx<-as.matrix(spam[cnum,-58])
+yy<-spam[cnum,58]
+N<-length(cnum)
+
+###k-NN法
+kn<-knn(x[,-c(55:57)],xx[,-c(55:57)],y,k=1)
+res[i,1]<-sum(diag(table(yy,kn)))/N
+
+##LDA
+lda.mod<-lda(type~.,spam[-cnum,])
+##作成したモデルの評価指標を確認してみよう。
+pre.lda<-predict(lda.mod,spam[cnum,-58])  
+res[i,2]<-sum(diag(table(yy,pre.lda$class)))/N
+
+##naivebayes
+nb1<-multinomial_naive_bayes(x[,-c(55:57)],y,laplas=0)
+pre.nb<-predict(nb1,xx[,-c(55:57)],type = "class")
+res[i,3]<-sum(diag(table(yy,pre.nb)))/N
+
+##rpart_Gini
+tr<-rpart(type~.,spam[-cnum,])
+te<-predict(tr,spam[cnum,-58],type="class")
+res[i,4]<-sum(diag(table(yy,te)))/N
+
+## C50
+tr<-C5.0(x,y)
+te<-predict(tr,xx)
+res[i,5]<-sum(diag(table(spam[cnum,58],te)))/N
+
+###Bagging
+tr<-bagging(type~.,data=spam[-cnum,])
+te<-predict(tr,spam[cnum,-58])
+res[i,6]<-sum(diag(table(spam[cnum,58],te$class)))/N
+
+###Boosting
+tr<-boosting(type~.,data=spam[-cnum,])
+te<-predict(tr,newdata=spam[cnum,-58])
+res[i,7]<-sum(diag(table(spam[cnum,58],te$class
+)))/N
+
+##RF
+tr<-randomForest(x,y,mytry=300)
+te<-predict(tr,xx)
+res[i,8]<-sum(diag(table(spam[cnum,58],te)))/N
+
+##SVM_rbfdot
+tr<-ksvm(xdata(spam)
+
+
+nr<-nrow(spam)
+k=10   #繰り返し回数
+m=11
+rep<-10
+res<-array(0, c(rep,k,m))
+
+ta<-matrix(0,2,2)
+#cv<-cvsegments(nr,k=k)   #library(pls)
+
+for(h in 1:rep){
+cv<-cvsegments(nr,k=k)   
+  for(i in 1:k){
+cnum<-unlist(cv[i])
+x<-as.matrix(spam[-cnum,-58])
+y<-spam[-cnum,58]
+xx<-as.matrix(spam[cnum,-58])
+yy<-spam[cnum,58]
+N<-length(cnum)
+###k-NN法
+kn<-knn(x[,-c(55:57)],xx[,-c(55:57)],y,k=1)
+res[h,i,1]<-sum(diag(table(yy,kn)))/N
+
+##LDA
+lda.mod<-lda(type~.,spam[-cnum,])
+##作成したモデルの評価指標を確認してみよう。
+pre.lda<-predict(lda.mod,spam[cnum,-58])  
+res[h,i,2]<-sum(diag(table(yy,pre.lda$class)))/N
+
+##naivebayes
+nb1<-multinomial_naive_bayes(x[,-c(55:57)],y,laplas=0)
+pre.nb<-predict(nb1,xx[,-c(55:57)],type = "class")
+res[h,i,3]<-sum(diag(table(yy,pre.nb)))/N
+
+##rpart_Gini
+tr<-rpart(type~.,spam[-cnum,])
+te<-predict(tr,spam[cnum,-58],type="class")
+res[h,i,4]<-sum(diag(table(yy,te)))/N
+
+## C50
+tr<-C5.0(x,y)
+te<-predict(tr,xx)
+res[h,i,5]<-sum(diag(table(spam[cnum,58],te)))/N
+
+###Bagging
+tr<-bagging(type~.,data=spam[-cnum,])
+te<-predict(tr,spam[cnum,-58])
+res[h,i,6]<-sum(diag(table(spam[cnum,58],te$class)))/N
+
+###Boosting
+tr<-boosting(type~.,data=spam[-cnum,])
+te<-predict(tr,newdata=spam[cnum,-58])
+res[h,i,7]<-sum(diag(table(spam[cnum,58],te$class
+)))/N
+
+##RF
+tr<-randomForest(x,y)
+te<-predict(tr,xx)
+res[h,i,8]<-sum(diag(table(spam[cnum,58],te)))/N
+
+##SVM_rbfdot
+tr<-ksvm(x[,-c(55:57)],y,kernel ="rbfdot",scale=TRUE)
+te<-predict(tr,xx[,-c(55:57)])
+res[h,i,9]<-sum(diag(table(spam[cnum,58],te)))/N
+
+##logit
+tr0<-multinom(type~.,spam[-cnum,-c(55:57)])
+te<-predict(tr0,spam[cnum,-c(55:57)])
+res[h,i,10]<-sum(diag(table(spam[cnum,58],te)))/N
+
+##NNET
+tr<-nnet(type~.,spam[-cnum,-c(55:57)],size=8)
+te<-predict(tr,xx[,-c(55:57)],type="class")
+res[h,i,11]<-sum(diag(table(spam[cnum,58],te)))/N
+
+}
+}
+
+###作図
+library(psych)
+result<-rbind(res[1,,],res[2,,],res[3,,],res[4,,],res[5,,],res[6,,],res[7,,],res[8,,],res[9,,],res[10,,])
+colnames(result)<-c("k-NN","LDA","NiveB","RpartGini","C50","Bagg","Boost","RF", "SVM_Rad", "Logit","NNet")
+boxplot(result,medlwd = 0.1,add=TRUE)
+error.bars(result,eyes=FALSE,add=T,arrow.col="red") 
+
+
+re<-matrix(0,2,m)
+colnames(re)<-c("k-NN","LDA","NiveB","RpartGini","C50","Bagg","Boost","RF","svm_Rad","Logit","NNet")
+colnames(res)<-c("k-NN","LDA","NiveB","rp_Gini","C50","Bagg","Boost","RF","svm_Rad","Logit","NNet")
+re[1,]<-round(apply(res,2,mean),4)
+re[2,]<-round(apply(res,2,sd),4)
+rownames(re)<-c("Mean","Sd")
+re
+
+
+###############
+install.packages("h2o", repos=(c("http://s3.amazonaws.com/h2o-release/h2o/rel-kahan/5/R", getOption("repos"))))
+library(h2o)
+localH2O = h2o.init()
+
+data(spam)
+nr<-nrow(spam)
+k=10
+cv<-cvsegments(nr,k=k)   #library(pls)
+
+temp<-matrix(0,2,2)
+for(i in 1:k){
+cnum<-unlist(cv[i])
+spam.hex <- as.h2o(spam[-cnum,])
+tr<-h2o.deeplearning(x = 1:57, y = 58, training_frame = spam.hex, hidden = c(250,500,100,50,20), epochs=500)
+test.hex <- as.h2o(spam[cnum,])
+fit = h2o.predict(tr, newdata = test.hex[,-58])
+temp<-temp+table(spam[cnum,58],as.data.frame(fit)[,1])
+}
+#print(proc.time() - tic)
+sum(diag(temp))/sum(temp)
+
+
+
+#######作文の内容の分類
+library(pls)
+#library(ggplot2)
+library(kernlab)
+library(randomForest)
+library(C50)
+library(nnet)
+library(rpart)
+library(class)
+library(adabag)
+library(naivebayes)
+library(MASS)
+
+saku11<-read.csv("http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv",head=T,row.names=1)
+saku11p<-100*saku11/apply(saku11,1,sum)
+y<-rep(LETTERS[1:10], each = 1,time=11)
+saku11y<-cbind(y=y,saku11p)
+#XY<-saku11y
+XY<-saku_nonNpy
+
+nr<-nrow(saku11p)
+k=10   #繰り返し回数
+m=11
+res<-as.data.frame(matrix(0,110,m))
+for(i in 1:11)res[,i]<-XY$y
+
+for(i in 1:nr){
+x<-as.matrix(XY[-i,-1])
+y<-XY[-i,1]
+xx<-as.matrix(XY[i,-1])
+yy<-XY[i,1]
+XX<-XY[,-1]
+YY<-XY$y
+
+###k-NN法
+res[i,1]<-knn(x,XX,y,k=1)[i]
+
+##LDA
+lda.mod<-lda(y~.,XY[-i,])
+res[i,2]<-predict(lda.mod,XX[,])$class[i]   
+
+
+##naivebayes
+nb1<-multinomial_naive_bayes(x,y)
+res[i,3]<-predict(nb1,xx,type = "class")
+
+##rpart_Gini
+tr<-rpart(y~.,XY[-i,])
+res[i,4]<-predict(tr,XY[i,],type="class")
+
+## C50
+tr<-C5.0(x,y)
+res[i,5]<-predict(tr,XY[i,])
+
+###Bagging
+tr<-bagging(y~.,data=XY[-i,])
+res[i,6]<-predict(tr,XX)$class[i]
+
+
+###Boosting
+tr<-boosting(y~.,data=XY[-i,])
+res[i,7]<-predict(tr,XX)$class[i]
+
+
+##RF
+tr<-randomForest(x,y)
+res[i,8]<-predict(tr,XX)[i]
+
+#SVM_rbfdot
+tr<-ksvm(x,y,kernel ="rbfdot",scale=TRUE)
+res[i,9]<-predict(tr,xx)
+
+##logit
+tr0<-multinom(y~.,XY[-i,])
+res[i,10]<-predict(tr0,XX)[i]
+
+##NNET
+tr<-nnet(y~.,XY[-i,],size=5)
+res[i,11]<-predict(tr,XX,type="class")[i]
+}##終了
+
+
+re<-matrix(0,2,m)
+colnames(res)<-c("k-NN","LDA","NiveB","RpartGini","C50","Bagg","Boost","RF", "SVM_Rad", "Logit","NNet")
+library(psych)
+
+boxplot(res,medlwd = 0.1,medcol=3,col = "bisque")
+#library(psych)
+grid()
+boxplot(res,medlwd = 0.1,medcol=3,col = "bisque",add=T)
+error.bars(res,eyes=FALSE,add=T,arrow.col="red") 
+
+
+###小説作家の推定
+lab<-rep(LETTERS[1:10], each = 10)
+novWp<-novW/apply(novW,1,sum)
+novWpy<-data.frame(y=lab,novWp[,1:300])
+XY<-novWpy
+nr<-nrow(novWpy)
+m=11
+res<-as.data.frame(matrix(0,100,m))
+for(i in 1:11)res[,i]<-XY$y
+
+for(i in 1:nr){
+x<-as.matrix(XY[-i,-1])
+y<-XY[-i,1]
+xx<-as.matrix(XY[i,-1])
+yy<-XY[i,1]dim(res)
+XX<-XY[,-1]
+YY<-XY$y
+
+###k-NN法
+res[i,1]<-knn(x,XX,y,k=1)[i]
+
+##LDA
+lda.mod<-lda(y~.,XY[-i,1:81])
+res[i,2]<-predict(lda.mod,XX[,1:80])$class[i]  
+
+##naivebayes
+nb1<-multinomial_naive_bayes(x,y)
+res[i,3]<-predict(nb1,xx,type = "class")
+##rpart_Gini
+tr<-rpart(y~.,XY[-i,])
+res[i,4]<-predict(tr,XY[i,],type="class")
+
+## C50
+tr<-C5.0(x,y)
+res[i,5]<-predict(tr,XY[i,])
+
+###Bagging
+tr<-bagging(y~.,data=XY[-i,])
+res[i,6]<-predict(tr,XX)$class[i]
+
+
+###Boosting
+tr<-boosting(y~.,data=XY[-i,])
+res[i,7]<-predict(tr,XX)$class[i]
+
+
+##RF
+tr<-randomForest(x,y)
+res[i,8]<-predict(tr,XX)[i]
+
+#SVM_rbfdot
+tr<-ksvm(x,y,kernel ="rbfdot",scale=TRUE)
+res[i,9]<-predict(tr,xx)
+
+##logit
+tr0<-multinom(y~.,XY[-i,1:81])
+res[i,10]<-predict(tr0,XX[,1:80])[i]
+
+##NNET
+tr<-nnet(y~.,XY[-i,1:81],size=5)
+res[i,11]<-predict(tr,XX[,1:81],type="class")[i]
+
+} ##終了
+
+re<-matrix(0,2,m)
+colnames(res)<-c("k-NN","LDA","NiveB","RpartGini","C50","Bagg","Boost","RF", "SVM_Rad", "Logit","NNet")
+
+install.packages("h2o", repos=(c("http://s3.amazonaws.com/h2o-release/h2o/rel-kahan/5/R", getOption("repos"))))
+library(h2o)
+localH2O = h2o.init()
+
+###H20
+
+install.packages("h2o", repos=(c("http://s3.amazonaws.com/h2o-release/h2o/rel-kahan/5/R", getOption("repos"))))
+library(h2o)
+resu<-list()
+for(i in 1:100){
+localH2O = h2o.init()
+train.hex <- as.h2o(dat[-i,])
+tr<-h2o.deeplearning(x = 2:301, y = 1, training_frame = train.hex, hidden = c(200,100,50,20), epochs=500)
+test.hex <- as.h2o(dat[i,-1])
+resu[[i]] = h2o.predict(tr, newdata = test.hex)
+}
+
+temp<-XY$y
+for(i in 1:100)temp[i]<-resu[[i]][1,1]
+confusionMatrix(table(temp,XY$y))
+
+
+
+
+ for(i in 1:100)tougo[[i]]<-names(table(t(res[,6:10])[,i]))[1]
+> confusionMatrix(table(unlist(tougo),XY$y))
+
+########train
+##https://rdrr.io/cran/caret/man/models.html
+
+library(xgboost)
+XY<-saku_nonNpy
+
+nr<-nrow(saku11p)
+k=10   #繰り返し回数
+m=11
+res<-as.data.frame(matrix(0,110,m))
+for(i in 1:11)res[,i]<-XY$y
+
+for(i in 1:nr){
+XX<-XY[,-1]
+
+###k-NN法
+knn0<-train(y~.,XY,method="knn")
+res[i,1]<-predict(knn0,XY[i,-1])
+
+##LDA
+#lda0<-train(y~.,XY[-i,],method = "fda")
+#res[i,2]<-predict(lda0,XY[i,-1])  
+#method = 'bagFDA' #Bagged Flexible Discriminant Analysis
+
+##naivebayes
+nb0<-train(y~.,XY[-i,],method="naive_bayes")
+res[i,3]<-predict(nb0,XY[i,-1])
+ 
+
+##rpart_Gini
+trR<-train(y~.,XY[-i,],method="rpart2")
+res[i,4]<-predict(trR,XY[i,-1])
+
+## C50
+trC<-train(y~.,XY[-i,],method="C5.0")
+res[i,5]<-predict(trC,XY[i,-1])
+
+###Bagging
+bag<-train(y~.,XY[-i,],method="treebag") 
+res[i,6]<-predict(bag,XY[i,-1])
+
+###Boosting
+boost<- train(y~.,XY[-i,],method = "AdaBoost.M1") 
+res[i,7]<-predict(boost,XY[i,-1])
+
+##RF
+rf<-train(y~.,XY[-i,],method="rf") 
+res[i,8]<-predict(rf,XY[i,-1])
+
+#SVM_rbfdot
+svm<-train(y~.,XY[-i,],method="svmRadial") 
+res[i,9]<-predict(svm,XY[i,-1])
+
+#Distance Weighted Discrimination with Polynomial Kernel (method = 'dwdPoly') 
+#svm<-train(y~.,XY[-i,],method="svmRadialWeights") 
+#res[i,9]<-predict(svm,XY[i,-1])
+#Support Vector Machines with Class Weights (method = 'svmRadialWeights') 
+#mult<-train(y~.,XY[-i,],method="dwdRadial") #two class problems only
+
+##logit
+
+#Boosted Logistic Regression 
+#mult<-train(y~.,XY[-i,],method="multinom")
+mult<-train(y~.,XY[-i,],method="LogitBoost") 
+res[i,10]<-predict(mult,XY[i,-1])
+
+##NNET
+nnet0<-train(y~.,XY[-i,],method="nnet") 
+res[i,11]<-predict(nnet0,XY[i,-1])
+#Monotone Multi-Layer Perceptron Neural Network (method = 'monmlp') #精度が低い
+#Multi-Layer Perceptron (method = 'mlp') 
+#Multi-Layer Perceptron (method = 'mlpWeightDecay') 
+#Multi-Layer Perceptron, with multiple layers (method = 'mlpML') 
+
+}##終了
+
+##High-Dimensional Regularized Discriminant Analysis (method = 'hdrda') 
+#パッケージ ‘sparsediscrim’ が利用できません (for R version 3.6.2)  
+nnet0<-train(y~.,XY[-i,],method="hdrda") 
+res[i,11]<-predict(nnet0,XY[i,-1])
+
+
+for(i in 1:100)tougo[[i]]<-names(table(t(res[,6:10])[,i]))[1]
+confusionMatrix(table(unlist(tougo),XY$y))
+
+
+
+#####平均プロット作成
+
+me<-apply(res,2,mean)
+SD<-1.96*apply(res,2,sd)/sqrt(100)
+ucl<-me+SD
+lcl<-me-SD #平均値-標準偏差の値
+#mi<-min(RES2)
+#ma<-max(RES2)
+nc=ncol(res)
+
+plot(1:nc,me, ylim=range(c(lcl-0.01,ucl)),xlab="") #平均値の点をプロット
+grid()
+arrows(1:nc,ucl,1:nc,lcl,length=.05,angle=90,code=3,col=2) #（1）横棒付きのエラーバー
+text(1:nc,lcl-0.01,colnames(res),col=2)
