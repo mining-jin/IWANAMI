@@ -1,0 +1,50 @@
+##pp.131
+##本節の内容に関するRスクリプト
+path<-"http://github.com/mining-jin/IWANAMI/blob/master/data/sakubun3f.csv"
+sakubun<-read.csv(path, row.names = 1, fileEncoding = "shift-JIS")
+sakubun2<-sakubun[,-32]
+#install.packages("psych")
+library(psych)
+##図7.3の作成
+fa.parallel(sakubun2, fa = "pc")
+##サンプリングデータを生成するときには，データによっては正しく生成できない場合がある．
+##その時にはシミュレーションの結果を目安とした方がよい．
+install.packages("FactoMineR")
+library(FactoMineR)
+##相関係数行列を用いた主成分分析と図7.4の作成
+pca<-PCA(sakubun2)
+round(pca$eig, 3)
+ki<-round(pca$eig[1:2, 2], 2)
+##図7.5(a)の作成
+biplot(pca$ind$coord, pca$var$coord, 
+       xlab = paste("PCA_1(", ki[1], "%)"),
+       ylab = paste("PCA_2(", ki[2], "%)")) 
+
+#pp.133
+#本節内容に関するRスクリプト
+install.packages("FactoMineR")
+library(FactoMineR)
+res<-CA(sakubun)#図7.6の作成
+
+#pp.135
+#本節の内容に関するRスクリプト
+sb<-sakubun[,-32]/rowSums(sakubun)
+res<-svd(sb)
+X<-res$u
+rownames(X)<-rownames(sb)
+Y<-res$v
+rownames(Y)<-colnames(sb)
+biplot(scale(X), scale(Y), xlab="Dim_1", ylab="Dim_2" )
+
+#pp.139
+#本節の内容に関するRスクリプト
+install.packages("NMF")
+library(NMF)
+set.seed(0)
+res<-nmf(sakubunp, 3)#3因子のNMFを行う．
+basis(res)#行のスコアを返す．
+basismap(res)#図7.8を作成する．
+coef(res)#列のスコアを返す．
+##scoef(res, scale=1)で各変数のスコアの合計が1になるよう標準化することができる．
+coefmap(res)#図7.9を作成する．
+consensusmap(res)#図7.10を作成する．
