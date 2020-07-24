@@ -1,6 +1,0 @@
-
-"https://github.com/mining-jin/IWANAMI/blob/master/data/両学長.csv
-"http://mjin.doshisha.ac.jp/data/JYO113.csv"
-
-mjin.doshisha.ac.jp
-github.com/mining-jin/IWANAMI/blob/master
