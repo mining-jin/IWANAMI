@@ -1,24 +1,6 @@
-#XX<-read.delim("clipboard")
+data.path_0<- "https://github.com/mining-jin/IWANAMI/blob/master/data/co_occur.csv"
+keitai<-read.csv(data.path_0, header = TRUE, row.names = 1)
 
-
-Œê1,Œê2,Freq
-•¶Í,\¬,1
-•¶Í,—v‘f,1
-•¶Í,•¶,1
-•¶Í,î•ñ,1
-•¶Í,•ªÍ,1
-\¬,—v‘f,1
-\¬,•¶,1
-\¬,î•ñ,1
-\¬,•ªÍ,1
-—v‘f,•¶,1
-—v‘f,î•ñ,1
-—v‘f,•ªÍ,1
-•¶,î•ñ,1
-•¶,•ªÍ,1
-î•ñ,•ªÍ,1
-
-keitai<-read.delim("clipboard",sep=",")
 library(igraph)
 keitai.g<-graph.data.frame(keitai[,1:2], directed=TRUE)
 E(keitai.g)$weight<-keitai[,3]
@@ -47,23 +29,8 @@ visNetwork(nodes = nodes, edges = edges)
 # 
 #g<-simplify(keitai.g, remove.loops = T) 
 
-Œ`‘Ô‘f1,Œ`‘Ô‘f2,‹¤‹N
-•’Ê–¼ŽŒ,Ú‘±•ŽŒ,2
-•’Ê–¼ŽŒ,Ši•ŽŒ,2
-ƒT•Ï–¼ŽŒ,“®ŽŒ,1
-ƒT•Ï–¼ŽŒ,•’Ê–¼ŽŒ,1
-•›ŽŒ,“®ŽŒ,1
-•›ŽŒ“I–¼ŽŒ,Ši•ŽŒ,1
-“®ŽŒ,“®ŽŒ«Ú”öŽ«,1
-“®ŽŒ,‹å“_,1
-“®ŽŒ«Ú”öŽ«,“®ŽŒ«Ú”öŽ«,1
-“®ŽŒ«Ú”öŽ«,•’Ê–¼ŽŒ,1
-Ú‘±•ŽŒ,ƒT•Ï–¼ŽŒ,1
-Ú‘±•ŽŒ,•›ŽŒ“I–¼ŽŒ,1
-Ši•ŽŒ,ƒT•Ï–¼ŽŒ,1
-Ši•ŽŒ,•›ŽŒ,1
-Ši•ŽŒ,•’Ê–¼ŽŒ,1
-
+data.path_pos<- "https://github.com/mining-jin/IWANAMI/blob/master/data/pos.csv"
+keitai<-read.csv(data.path_pos, header = TRUE, row.names = 1)
 pos<-read.delim("clipboard",sep=",")
 
 pos.g<-graph.data.frame(pos[,1:2], directed=TRUE)
@@ -278,8 +245,6 @@ ggplot(gnet,aes(x, y, xend = xend, yend = yend)) +
     @geom_nodetext(aes(label = vertex.names)) +
     @theme_blank()
 
-
-DDD
  
 #ƒm[ƒh‚ðŽæ‚èœ‚­
 V(g)[1:5]
@@ -296,7 +261,7 @@ cor(marks),#‘ŠŠÖŒW”
 res<-rsmax2(marks)
 plot(res)
 
-‰‰K–â‘è‚Ì‰ð“š
+#‰‰K–â‘è‚Ì‰ð“š
 library(sand);data(aidsblog)
 class(aidsblog)
 
