@@ -75,7 +75,7 @@ term<-t(posterior(resu)$term)#トピック内の語句確率を返す
 ##図11の作成は，図8.9の作成と同様である．
 plot(hclust(dist(topics(resu))))#クラスターの樹形図を作成する
 
-#oo.160
+#pp.160
 #本節の内容におけるトピック数の推定のRスクリプト
 install.packages("ldatuning")
 library(ldatuning)
