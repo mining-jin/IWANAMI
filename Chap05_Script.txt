@@ -1,0 +1,203 @@
+##Fig5.1
+path<-"https://mjin.doshisha.ac.jp/data/TwoPres.csv"
+data<-read.csv(path,row.names=1)
+
+barplot(sort(X2),horiz =TRUE,col="lightblue",las=2,xlab="B大学の上位30語の使用頻度")
+
+par(mfrow=c(1,2),mar=c(5,5,2,2))#作図環境を設定する
+X1<-sort(data[,1],decr=TRUE)[1:30]
+names(X1)<-rownames(data)[sort.list(data[,1],decr=TRUE)][1:30]
+barplot(sort(X1),horiz =TRUE,col="lightblue",las=2,
+xlab="A大学の上位30語の使用頻度")
+
+X2<-sort(data[,2],decr=TRUE)[1:30]
+names(X2)<-rownames(data)[sort.list(data[,2],decr=TRUE)][1:30]
+barplot(sort(X2),horiz =TRUE,col="lightblue",las=2,
+xlab="B大学の上位30語の使用頻度")
+
+##Fig5.2
+par(mfrow=c(2,1),mar=c(6,5,2,2))
+sor<-sort.list(data[1:30,1],decr=TRUE)
+barplot(t(data[sor,]),col=c(2,4),las=2,ylab="頻度",
+beside = TRUE,sub="(a)　頻度データの棒グラフ")
+legend(40,max(data[sor,])-2,colnames(data),col=c(2,4),pch=c(22,22),
+pt.bg=c(2,4))
+
+datap<-100*t(data)/colSums(data)#相対頻度に変換
+sor<-sort.list(datap[1,1:30],decr=TRUE)
+barplot(datap[,sor],col=c(2,4),las=2,ylab="相対頻度(単位は%)",
+beside = TRUE,sub="(b)　相対頻度データの棒グラフ")
+legend(40,max(datap[,sor])-1,colnames(data),col=c(2,4),pch=c(22,22),
+pt.bg=c(2,4))
+
+##Fig5.3
+zscore<-function(X){
+ 	x<-X[,1];y<-X[,2];#2列のデータをx,yに入れる
+ 	xsum<-sum(x); ysum<-sum(y)　#2列データの合計を求める
+ 	nr<-length(x)　　　　　　　 #異なり語句の数を数える
+ 	res<-matrix(0,nr,2)         #結果を入れるマトリックスを用意する
+ 	colnames(res)<-c("z-score","p-value") #ラベルを付ける
+ 	xp<-x/xsum; yp<-y/ysum       #割合を求める
+	for(i in 1:nr){              #すべての語句のZスコアを求める
+		 P<-(x[i]+y[i])/(xsum+ysum) #混合比率を求める
+ 		siguma<-sqrt(P*(1-P)*(1/xsum+1/ysum)) #標準偏差を求める
+ 		res[i,1]<-abs(xp[i]-yp[i])/siguma   #Zスコアの絶対値を求める
+		res[i,2]<-2*(1-pnorm(res[i,1]))     #ZスコアのP値を求める
+ 	}
+ 	score<-cbind(X,100*xp,100*yp,round(res,4))#出力データをまとめる
+	result<-score[sort.list(score[,5],decreasing =TRUE ),] 
+	#zで並べ替える
+	result
+}
+
+temp<-zscore(data)
+barplot(t(temp[1:30,3:4]), beside=TRUE, las=2,
+col=c(2,4), legend=colnames(data),ylab="相対頻度(%)")
+
+##Fig5.4
+install.packages("wordcloud")
+library(wordcloud)
+comparison.cloud(as.matrix(data))
+
+
+##図5.5を作成するRコードを次に示す．
+path<-"https://mjin.doshisha.ac.jp/data/grid_plot_data.csv"
+mat<-read.csv(path,row.names=1)#データを読み込む
+mat<-t(t(mat)/apply(t(mat),1,sum))#相対頻度に書き直す
+m<-20; X<-mat[1:m,] #作成したい語数を指定する
+##図のキャンパス領域を決める
+plot(0,0,col="white",ylim=c(-0, m),xlim=c(-0,ncol(X)),
+xlab="",ylab="",axes=FALSE)
+for(i in 1:m) 
+lines(x=c(1,ncol(X)),y=c(i,i),col="gray")　#横線を書く
+for(i in 1:ncol(X)) 
+lines(x=c(i,i),y=c(1,m),col="gray")#縦線を書く
+##縦横線の交差点にデータをプロットする
+points(col(X),nrow(X)-row(X)+1,pch=19, cex=as.matrix(X*25+1),
+col=rainbow(ncol(X),alpha=0.33)[col(X)])
+text((1:8)+0.3,0,colnames(X),adj=c(1,0.5),cex=0.8,las=3)
+text(0,1:m,rownames(mat)[m:1],cex=0.8)
+
+
+##Fig5.6
+library(lattice)
+levelplot(mat[-25,],scales = list(x = list(rot = 90))) 
+
+##図5.1の計算と図5.10を作成するRコードを次に示す．
+path<-"https://mjin.doshisha.ac.jp/data/jyoshi.csv"
+jyoshi<-read.csv(path,row.names=1)
+jyoship<-100*(jyoshi/rowSums(jyoshi))
+summary(jyoship[1:10,2])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  10.78   11.87   12.61   12.81   13.96   14.51 
+summary(jyoship[11:20,2])
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  7.420   8.304   8.930   8.935   9.673  10.292 
+
+##図5.9を作成する
+lab.txt<-c("夏目漱石","泉鏡花")
+boxplot(jyoship[,2]~rep(lab.txt,each=10),col="lightblue")
+points(x=c(rep(1:2,each=10)+rnorm(20,0,0.15)),
+ y=c(jyoship[1:10,2],jyoship[11:20,2]),col="gray4",cex=0.8,pch=8)
+
+
+##Fig5.11
+par(mar=c(7,4.5,2,2))
+vnum=1:15
+data<-jyoship[,vnum]
+lab.txt<-c("夏目漱石","泉鏡花")
+boxplot(data [1:10, ], boxwex = 0.15, at = vnum-0.1, las=2, col=2,
+ylim=c(0, max(data)), ylab="使用率(単位は%)")
+boxplot(data [11:20, ], boxwex = 0.15, at = vnum+0.2, las=2,
+col=7, add=TRUE, axes = FALSE)
+legend(10, 14, lab.txt, pch = 22, pt.bg =c(2, 7),pt.cex = 2, cex=1.3)
+
+
+##Fig5.12
+plot(jyoship[,2],jyoship[,11],type="n",
+xlab="「は/副助詞」",ylab="「の/格助詞」")
+text(jyoship[,2],jyoship[,11],rownames(jyoship))
+
+##Fig5.14-5.15
+library(psych)　#インストールが必要である。
+y<-rep(c("夏目漱石","泉鏡花"),each=10)
+error.bars.by(data[,2],y,eyes=FALSE,ylab="使用率(単位は%)",
+xlab="「は/副助詞」")
+legend("top", lab.txt, lty = 1:2,col=c(1,4),bty ="n")
+
+par(mar=c(7,4.5,2,2))
+error.bars.by(data,y,las=2,eyes=FALSE,xlab="",
+ylab="使用率(単位は%)")
+legend(10,14, lab.txt, lty = 1:2,col=c(1,4),pt.cex = 2)
+
+
+##p値の計算とt検定
+1-pt(7.59,16)
+[1] 5.449519e-07
+
+t.test(data[1:10,2],data[11:20,2])
+
+Welch Two Sample t-test
+data:data[1:10, 2] and data[11:20, 2]
+t = 7.6206, df = 16.251, p-value = 9.379e-07
+＜後略＞
+
+
+##比率の差の検定
+P<-(0+6)/(226+164)
+abs(-6/164)/sqrt(P*(1-P)*(1/226+1/164))
+[1] 2.897841
+1-pnorm(2.897841)
+[1] 0.001878705
+2*(1-pnorm(2.897841))
+[1] 0.00375741
+head(zscore(data))
+
+##カイ二乗検定
+1-pchisq(0.00115,1)
+[1] 0.9729476
+X<-matrix(c(11,7,215,157),2)
+chisq.test(X)
+
+#表5.7のカイ二乗値を計算するRコードを次に示す．
+path<-"https://mjin.doshisha.ac.jp/data/grid_plot_data.csv"
+mat<-read.csv(path,row.names=1)      #データを読み込む
+temp<-rbind(研究=mat[1,],その他=colSums(mat)-mat[1,])
+temp
+chisq.test(temp)
+
+##カイ二乗値を用いた変数選択関数
+chisq2<-function(x)
+{
+	tal<-apply(x,2,sum)		#列の合計を求める
+	nr<-nrow(x)			#行の数を求める
+	nc<-ncol(x)			#列の数を求める
+	te<-matrix(0,nr,1)		#保存領域を確保
+	y<-cbind(x,p.value=te)		#データの後に計算結果を格納
+	for(i in 1:nr){			#繰り返する回数
+	　temp<-rbind(x[i,],tal-x[i,]) #分割表を作成
+	　y[i,nc+1]<-chisq.test(temp)$p.value	#P値を計算
+	}
+yy<-round(y[sort.list(y[,nc+1]),],4)	#P値に基づいてソートする
+yy
+}
+chisq2(mat)
+
+
+###ついでに
+fisher2<-function(x)
+{
+	tal<-apply(x,2,sum)		#列の合計を求める
+	nr<-nrow(x)			#行の数を求める
+	nc<-ncol(x)			#列の数を求める
+	te<-matrix(0,nr,1)		#保存領域を確保
+	y<-cbind(x,fisher.p=te)		#データの後に計算結果を格納
+	for(i in 1:nr){			#繰り返する回数
+		temp<-rbind(x[i,],tal-x[i,])			#分割表を作成
+		y[i,nc+1]<-fisher.test(temp,simulate.p.value =TRUE,B=50000)$p.value	#P値を計算
+	}
+yy<-y[sort.list(y[,nc+1]),]			#P値に基づいてソートする
+yy
+}
+
+

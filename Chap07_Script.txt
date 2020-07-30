@@ -1,0 +1,50 @@
+##pp.131
+#本節の内容に関するRスクリプト
+sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun3f.csv"
+sakubun<-read.csv(sakubun.path, row.names = 1)
+sakubun2<-sakubun[,-32]/apply(sakubun, 1, sum)
+install.packages("psych")
+library(psych)
+##図7.3の作成
+fa.parallel(sakubun2, fa = "pc")
+##サンプリングデータを生成するときには，データによっては正しく生成できない場合がある．その時にはシミュレーションの結果を目安とした方がよい．
+install.packages("FactoMineR")
+library(FactoMineR)
+##相関係数行列を用いた主成分分析と図7.4の作成
+pca<-PCA(sakubun2)
+round(pca$eig, 3)             #固有値などを返す．
+ki<-round(pca$eig[1:2, 2], 2) #寄与率をkiに保存する．
+##図7.5(a)の作成
+biplot(pca$ind$coord, pca$var$coord, 
+       xlab = paste("PCA_1(", ki[1], "%)"),
+       ylab = paste("PCA_2(", ki[2], "%)"))
+X<-sakubun/apply(sakubun, 1, sum) #相対頻度を求める
+##分散共分散行列を用いた主成分分析と図7.5(b)の作成を行う
+pca<-PCA(X[,-32], scale.unit = FALSE)
+ki<-round(pca$eig[1:2, 2], 2)
+biplot(pca$ind$coord, pca$var$coord,
+       xlab = paste("PCA_1(", ki[1], "%)"),
+       ylab = paste("PCA_2(", ki[2], "%)"))
+
+#pp.133
+#本節内容に関するRスクリプト
+sakubunp<-sakubun[,-32]/rowSums(sakubun)
+res<-svd(sakubunp)
+X<-res$u
+rownames(X)<-rownames(sakubunp)
+Y<-res$v
+rownames(Y)<-colnames(sb)
+biplot(scale(X), scale(Y), xlab = "Dim_1", ylab = "Dim_2")
+
+#pp.144
+#本節の内容に関するRスクリプト
+install.packages("NMF")
+library(NMF)
+set.seed(0)
+res<-nmf(sakubunp, 3)#3因子のNMFを行う．
+basis(res)           #行のスコアを返す．
+basismap(res)        #図7.8を作成する．
+coef(res)            #列のスコアを返す．
+##scoef(res, scale=1)で各変数のスコアの合計が1になるように標準化することができる．
+coefmap(res)         #図7.9を作成する．
+consensusmap(res)    #図7.10を作成する．
