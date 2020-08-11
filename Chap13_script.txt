@@ -1,0 +1,56 @@
+#13章
+path<-"http://mjin.doshisha.ac.jp/data/NatsuIzumi1.csv"
+NatsuIzumi1<-read.csv(path, row.names = 1, fileEncoding = "Shift-JIS")
+install.packages("FSelector")
+library(FSelector)
+weight<-information.gain(authors~., NatsuIzumi1[,1:10])
+weight
+#関数cutoff.biggest.diffを用いて大きい順に変数項目を抽出できる．
+subset<-cutoff.k(weight, 3)
+subset
+##抽出したものを分類器に適応させるには次のようにすると便利である．
+f<-as.simple.formula(subset, "authors")
+print(f)
+##選択した変数を用いたSVM分析の例
+library(kernlab)
+na<-as.matrix(NatsuIzumi1[,-1])
+lab<-as.factor(NatsuIzumi1[,1])
+ksvm(x=na[,subset],y=lab)
+##選択した変数を用いた主成分分析の例
+biplot(prcomp(NatsuIzumi1[,subset]))
+
+library(caret)
+fvi<-filterVarImp(NatsuIzumi1[,2:10], as.factor(NatsuIzumi1[,1]))
+fvi#値が大きいほど重要度が増す．
+head(fvi)
+fvi
+#表13.4の1番目の分割表のAUCとは一致しない.
+fvis2<-fvi[sort.list(fvi[,1], dec=TRUE),]#大きい順にソートする
+fvis2
+
+#Borutaを用いた変数選択の例
+path<-"http://mjin.doshisha.ac.jp/data/NatsuIzumi2.csv"
+NatsuIzumi2<-read.csv(path, row.names=1, fileEncoding = "Shift-JIS")
+install.packages("Boruta")
+library(Boruta)
+lab<-as.factor(NatsuIzumi2[,1])
+na2<-as.matrix(NatsuIzumi2[,2:15])
+Bor<-Boruta(x=na2, y=lab, ntree=10000)
+par(mar=c(8, 4, 4, 4))
+plot(Bor, las=2, xlab="") #図13.1の作成
+grid()
+print(Bor)
+##すべての変数を用いた結果を次に示す．
+dim(NatsuIzumi2)
+na_all<-as.matrix(NatsuIzumi2[,-1])
+#Bor<-Boruta(authors~., data=NatsuIzumi2, ntree=10000)
+Bor<-Boruta(x=na_all, y=lab, ntree=10000)
+print(Bor)
+
+#varImp{caret}を用いてRRFによる特徴量選択の例
+set.seed(1)
+library(caret)
+rrf.Mod<-caret::train(authors~., data=NatsuIzumi2, method="RRF")
+rrf.Imp<-varImp(rrf.Mod, scale=TRUE)
+rrf.Imp
+plot(rrf.Imp, top=20, main="Variable Importance")
