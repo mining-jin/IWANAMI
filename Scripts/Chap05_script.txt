@@ -1,0 +1,228 @@
+##第5章　共起とbigramのネットワーク分析
+##pp.77
+##ネットワークグラフを作成するスクリプト(R3.5上で確認済み)
+install.packages("igraph")
+library(igraph)
+##まず，集計データをネットワークデータ形式に変換する．
+path<-"https://mjin.doshisha.ac.jp/data/co_occur.csv"
+keitai<-read.csv(path)#データを読み込む（mac OSの場合：keitai<-read.csv(path, fileEncoding="shift-JIS")）
+keitai.g<-graph.data.frame(keitai[, 1:2])
+E(keitai.g)$weight<-keitai[, 3]#エッジに頻度の値を与える
+V(keitai.g)$color<-"yellowgreen"#ノードの色を指定する
+plot(keitai.g, edge.label=E(keitai.g)$weight)#グラフを作成する
+##図5.1はパッケージvisNetworkを用いた．
+
+##pp.78
+##ネットワークの作成と次数の計算
+path<-"https://mjin.doshisha.ac.jp/data/pos.csv"
+pos<-read.csv(path)#mac OSの場合：pos<-read.csv(path, fileEncoding = "shift-JIS")
+pos.g<-graph.data.frame(pos[, 1:2], directed=TRUE)
+E(pos.g)$weight<-pos[, 3]
+V(pos.g)$color<-"lightblue"
+## tkplot(pos.g, edge.label=E(pos.g)$weight) #R version 3.5, 3.6
+## visNetworkを用いる．図5.2はMTMineRを用いたものである．
+install.packages("visNetwork")
+library(visNetwork)
+data<-toVisNetworkData(pos.g)
+visNetwork(data$nodes, data$edges)%>%
+  visIgraphLayout(layout="layout_with_fr")%>%
+  visEdges(arrows="middle")
+
+##次数の計算
+igraph::degree(pos.g)           #矢印の方向を無視した次数
+igraph::degree(pos.g, mod="out")#出力方向のエッジの次数
+degree(pos.g, mod="in")         #入力方向のエッジの次数
+
+##pp.79
+##ネットワークグラフの密度の比較と計算
+graph.density(keitai.g)         #図5.1の密度
+graph.density(pos.g)            #図5.2の密度
+
+##pp.80
+##ネットワークグラフの中心性の計算
+##近接中心性の計算
+closeness(keitai.g, mod="all")#方向を無視した近接中心性
+closeness(pos.g, mod="all")
+##媒介中心性の計算
+betweenness(keitai.g)
+betweenness(pos.g)
+##PagRanの計算
+page_rank(keitai.g)#分析に係るノードの数が最も多い
+#「分析」の値が最も大きい．
+#図5.1から分かるように「分析」への矢印向きの辺が5本で最も多い．
+
+##pp.81-82
+##ネットワークグラフのクラスター係数
+transitivity(keitai.g)#図5.1のクラスター係数  
+transitivity(pos.g)　 #図5.2のクラスター係数
+
+##pp.82
+##ネットワークグラフのパスの平均長さの計算
+average.path.length(keitai.g)
+average.path.length(pos.g)
+
+##pp.84
+##コミュニティ分割
+install.packages("linkcomm")
+library(linkcomm)
+sp<-spinglass.community(pos.g)#焼き増し法
+wc<-walktrap.community(pos.g) #ランダムウォーク法
+par(mfrow=c(1, 2))
+plot(sp, pos.g, vertex.label=V(pos.g)$name)
+plot(wc, pos.g, vertex.label=V(pos.g)$name)
+
+##pp.86-87
+##図5.5のデータの読み込みとグラフの作成
+anketo.path<-"http://mjin.doshisha.ac.jp/data/anketo.csv"
+anketo<-read.csv(anketo.path)#mac OSの場合：anketo<-read.csv(anketo.path, fileEncoding="shift-JIS")
+dim(anketo)
+#[1] 847  3  #847ペアの文節共起データセットである
+head(anketo)
+g<-graph.data.frame(anketo) #ネットワークオブジェクトに変換
+E(g)$weight<-anketo[, 3]    #第3列が頻度をエッジの重みとする
+plot(g, vertex.size=1, vertex.label="", edge.arrow.size=0.2)
+
+##pp.88-89
+##「もっと」ノードを特定し，作図する．
+sort(degree(g), decreasing=TRUE)[1:5]
+sort.list(degree(g), decreasing=TRUE)[1:5]
+#[1]   3 761 694 731 238 #「もっと」が3番目
+##上記のコマンドで次数が最も高いのは3番目であることがわかる
+##次の2行のコマンドで，グラフgの中の3番目のノードからパスが1であるサブグラフを抽出する．
+ng<-neighborhood(g, 1, 3)[[1]]
+motto<-induced.subgraph(g, ng)
+plot(motto, vertex.size=1, edge.arrow.size=0.5,
+     edge.label=E(motto)$weight, vertex.label.cex=1.2,
+     vertex.label.color="black")
+##図5.6は，上記のmottoを次のコマンドで作成している．
+library(visNetwork)#ネットワークの視覚化パッケージ
+visData<-toVisNetworkData(motto)
+weights<-visData$edges[, 3]
+nodes<-data.frame(visData$nodes, font.size=10, size=10)
+edges<-data.frame(visData$edges, label=weights, arrows="to")
+visNetwork(nodes, edges)
+
+##pp.89-90
+##図5.7を作成するスクリプト
+##グラフgから1番目のノードから周辺パスが4までのノードを抽出する．
+gakuhi<-induced.subgraph(g, neighborhood(g, 4, 1)[[1]])
+##図5.7は次のコマンドで作成している．
+library(dplyr)
+visData<-toVisNetworkData(gakuhi)
+weights<-visData$edges[, 3]
+nodes<-data.frame(visData$nodes, font.size=25, size=10)
+edges<-data.frame(visData$edges, label=weights, arrows="to",
+                  smooth=TRUE, shadow=TRUE)
+visNetwork(nodes, edges, width="100%", height="600px")%>%
+  visIgraphLayout(layout="layout.fruchterman.reingold")
+
+##pp.91
+##図5.8を作成するスクリプト
+visData<-toVisNetworkData(gakuhi)
+weights<-visData$edges[, 3]
+deg<-scale(degree(gakuhi), center=FALSE)+1
+nodSize<-10*round(deg)
+nodes<-data.frame(visData$nodes, font.size=25, size=nodSize)
+edges<-data.frame(visData$edges, label=weights, arrows="to",
+                  width=weights, smooth=TRUE, shadow=TRUE)
+visNetwork(nodes, edges, width="100%", height="600px")%>%
+  visIgraphLayout(layout="layout.fruchterman.reingold")
+
+##pp.91-92
+##図5.9を作成するスクリプト
+install.packages("linkcomm")
+library(linkcomm)
+set.seed(100)
+CO<-cluster_optimal(gakuhi)#mac OSの場合，2020年12月26日時点では，関数GLPKが取り除かれているため，cluster_optimalは実行不可であり，開発者のgithubページよりコンパイルする必要がある．
+plot(CO, gakuhi, vertex.label=(gakuhi)$name,
+     vertex.size=2, vertex.label.dist=1, vertex.label.size=0.6,
+     vertex.label.color="black", layout=layout_with_gem,
+     edge.arrow.size=0.5, edge.color="grey50"
+    )
+##パッケージvisNetworkを用いた図5.9の作成
+visData<-toVisNetworkData(gakuhi)
+nodSize<-5*(igraph::degree(gakuhi)) #ノードのサイズの調整
+weights<-visData$edges[, 3]
+comm<-as.numeric(membership(CO))
+len<-length(table(comm)) #コミュニティの数を計算
+##上記の結果を用いてノードとエッジのデザインを指定する
+library(RColorBrewer)
+cols<-brewer.pal(len, "Paired") #ノードの色を調整する場合
+modes<-data.frame(visData$nodes, color=cols[comm], size=nodSize)
+edges<-data.frame(visData$edges, label=weights, arrows="to",
+                  smooth=TRUE, shadow=TRUE)
+visNetwork(nodes, edges)
+
+##pp.97-99
+##表5.6の係数とネットワークグラフの作成
+library(igraph)
+library(RColorBrewer)
+library(visNetwork)
+data.path<-"http://mjin.doshisha.ac.jp/data/anketo.csv"
+anketo<-read.csv(data.path)#mac OSの場合，anketo<-read.csv(data.path, fileEncoding="shift-JIS")
+Nrow=nrow(anketo)
+Summary<-cbind(anketo, matrix(0, Nrow, 8))
+colnames(Summary)<-c("Term1", "Term2", "Frequency",
+                     "Term_Fre", "Term_Fre", "Phi", "LLR",
+                     "Jaccard", "Ochiai", "MI", "LFMD")
+col1<-as.character(anketo[, 1])
+col2<-as.character(anketo[, 2])
+N<-sum(anketo[, 3])
+for(i in 1:Nrow){
+  num1<-grep("TRUE", col1==anketo[i, 1])
+  num2<-grep("TRUE", col2==anketo[i, 1])
+  num3<-grep("TRUE", col1==anketo[i, 2])
+  num4<-grep("TRUE", col2==anketo[i, 2])
+  a<-anketo[i, 3]; b<-sum(anketo[c(num1, num2), 3])-a;
+     c<-sum(anketo[c(num3, num4), 3])-a; d<-N-a-b-c;
+  Summary[i, 4]<-sum(anketo[unique(c(num1, num2)), 3])
+  Summary[i, 5]<-sum(anketo[unique(c(num3, num4)), 3])
+  Summary[i, 6]<-(a*d-b*c)/sqrt((a+b)*(a+c)*(b+d)*(c+d)) #Phi
+  Summary[i, 7]<-2*a*log2(N*a/((a+b)*(a+c)))             #LLR
+  Summary[i, 8]<-a/(a+b+c)                               #Jaccard
+  Summary[i, 9]<-a/sqrt((a+b)*(a+c))                     #Ochiai
+  Summary[i, 10]<--(a/N)*log2(N*a/((a+b)*(a+c)))         #MI
+  Summary[i, 11]<-log2(a^2/((a+b)*(a+c)))+log2(a/N)      #LFMD
+} #計算終了
+##MIとLFDMをスケーリングする
+temp1<-as.matrix(t(Summary[, 10:11]))
+Max<-apply(temp1, 1, max); Min<-apply(temp1, 1, min)
+temp<-t((temp1-Min)/(Max-Min))
+Summary[, 10:11]<-temp
+##どの係数を用いるかを次の行で指定する．
+##図5.9は，計算したJaccardですので8列を指定する.
+##図5.10は，7列目のLLRを指定して作成したものである．
+
+##図5.10を作成するスクリプトを次に示す．
+Val<-Summary[, 8]
+DataVal<-as.data.frame(cbind(anketo[, 1:2], y=round(Val, 2),
+                             colnum=1:Nrow))
+DataVal<-DataVal[order(DataVal[, 3], decreasing=TRUE), ]
+##上位何個を用いるかを指定する．例えば，上位30組
+trueData<-DataVal[1:30, ]
+FreData<-anketo[trueData[, 4], ]
+##作図する
+x.g<-graph.data.frame(trueData, directed=TRUE)
+E(x.g)$weight<-trueData[, 3]
+visData<-toVisNetworkData(x.g)
+FreCol1<-as.character(FreData[, 1])
+FreCol2<-as.character(FreData[, 2])
+Unique<-unique(FreCol1, FreCol2)
+Fre<-c()
+for(i in 1:length(Unique)){
+  num1<-grep("TRUE", FreCol1==Unique[i])
+  num2<-grep("TRUE", FreCol2==Unique[i])
+  num<-unique(c(num1, num2))
+  Fre<-c(Fre, sum(FreData[num, 3]))
+}
+nodeSize<-round(scale(Fre, center=min(Fre),
+                      scale=(max(Fre)-min(Fre)))*10)+1
+weights<-visData$edges[, 3]
+nodes<-data.frame(visData$nodes, font.color="black",
+                  font.size=30, value=nodeSize)
+edges<-data.frame(visData$edges, label=weights, arrows="to", 
+                  width=1.0, font.size=30, dashes=TRUE, smooth=TRUE,
+                  shadow=TRUE)
+visNetwork(nodes, edges)%>%
+  visOptions(highlightNearest=TRUE, nodesIdSelection=TRUE)%>%
+  visIgraphLayout(layout="layout.fruchterman.reingold")

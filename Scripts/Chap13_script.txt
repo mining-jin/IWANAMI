@@ -1,0 +1,80 @@
+##第13章　分散表現
+##pp.287-288
+##word2vecの構造確認
+#install.packages("softmaxreg") #この一行を実行しないでください，{softmaxreg}は既にCRANから取り除かれているからである．
+#かわりに，https://cran.r-project.org/src/contrib/Archive/softmaxreg/ から，softmaxreg_1.2.tar.gz をダウンロードして，
+#以下のコードを実行して，ソースからインストールすることを推奨する．
+install.packages("パス", repos = NULL, type="source")
+library(softmaxreg)
+data(word2vec)
+dim(word2vec)
+word2vec[1:3, ] #語 "expands", "mobutu", "contends" のベクトル
+
+##pp.288-289
+##10人の記者による記事をベクトルに埋め込み，記者の推定を行う
+#まずデータをダウンロードする
+path<-"http://archive.ics.uci.edu/ml/machine-learning-databases/00217/C50.zip"
+loadURLData(path, getwd(), unzip=TRUE)
+
+#抽出した10名の名前ベクトルを作成する．
+authors10<-c("AaronPressman", "AlanCrosby", "AlexanderSmith",
+             "BenjaminKangLim", "BernardHickey", "BradDorfman", "DarrenSchuettler",
+             "DavidLawder", "EdnaFernandes", "EricAuchard")
+
+#学習データセットから10人のテキスト（記事500篇）を取り出す．
+C10Train<-document(path=paste("C50train/", authors10, sep=""), pattern="txt")
+
+#word2vecを使用して取り出した記事をベクトルに埋め込む．
+C10TrainVec<-wordEmbed(C10Train, dictionary=word2vec)
+dim(C10TrainVec) #ベクトルの次元数を用いた辞書と同じである
+#テストデータセットから10人の記事500篇を取り出す．
+#取り出したテキストをword2vecでベクトル化する．
+
+#テスト用のテキストをロードする．
+C10Test<-document(path=paste("C50test/", authors10, sep=""),
+                  pattern="txt")
+#テスト用のテキストをword2vecでベクトル化する．
+C10TestVec<-wordEmbed(C10Test, dictionary=word2vec)
+dim(C10TestVec)   #学習データと同じサイズである．
+
+#分類器SVMとRFで分類を行う．学習用とテスト用のデータにおける記事を書いた記者の順番と記事数が同じであるため，
+#ラベルは次のように付ける．
+#SVMによる記者識別
+library(kernlab)
+C10Y<-as.factor(c(rep(authors10, each=50))) #学習用ラベルを作成
+temp<-data.frame(y=C10Y, C10TestVec)        #学習用データフレームを作成
+set.seed(10)
+res1<-ksvm(y~., temp, scaled=FALSE)
+pred1<-predict(res1, C10TestVec)
+tab1<-table(pred1, C10Y)
+sum(diag(tab1))/sum(tab1)                    #正解率を求める
+#RFによる記者識別
+library(randomForest)
+res<-randomForest(y~., temp)
+pred<-predict(res, C10TestVec)
+tab<-table(pred, C10Y)
+sum(diag(tab))/sum(tab)
+
+##pp.290
+##BOWの出現頻度上位の語を用いた記者の識別
+path2<-"https://mjin.doshisha.ac.jp/data/c10bow.train.csv"
+#path2<-"/Users/liuyejia/Desktop/temp/c10bow.train.csv"
+c10bow.train<-read.csv(path2, row.names=1)
+dim(c10bow.train) #1列は記者名である
+path2<-"https://mjin.doshisha.ac.jp/data/c10bow.test.csv"
+#path2<-"/Users/liuyejia/Desktop/temp/c10bow.test.csv"
+c10bow.test<-read.csv(path2, row.names=1)
+dim(c10bow.test)
+#ksvmによる記者の識別を行う
+c10bow.train$y<-as.factor(c10bow.train$y) #データの属性の変換
+set.seed(10)
+mod1<-ksvm(y~., c10bow.train, scaled=FALSE)
+res3<-predict(mod1, c10bow.test)
+tab2<-table(res3, c10bow.train[, 1])
+sum(diag(tab2))/sum(tab2)
+#RFによる記者の識別を行う
+set.seed(10)
+mod2<-randomForest(y~., c10bow.train)
+res4<-predict(mod2, c10bow.test)
+tab4<-table(res4, c10bow.train[, 1])
+sum(diag(tab4))/sum(tab4)
