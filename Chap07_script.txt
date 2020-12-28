@@ -1,0 +1,101 @@
+##第7章　トピック分析
+##pp.130-131
+##pLSAに関するRスクリプト
+install.packages("svs")
+library(svs)
+sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun3f.csv"
+sakubun<-read.csv(sakubun.path, row.names=1)#mac OSの場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
+saku<-sakubun[, -32]
+##用いるデータはmatrix形式に変換する必要がある．
+res<-fast_plsa(as.matrix(sakubun[, -32]), k=3)
+res$prob1          #個体がトピックに属する確率
+res$prob2          #変数がトピック内における確率
+
+##図7.3の作成例
+term<-res$prob2
+m<-nrow(term)
+k<-ncol(term)
+colnames(term)<-c("Topic_1", "Topic_2", "Topic_3")
+par(mar=c(4.2, 5, 2, 2))
+plot(0, 0, col="white", ylim=c(-0, m+2), xlim=c(-0, k+1), xlab="",
+     ylab="", axes=FALSE)
+for(i in 1:m) lines(x=c(1, k), y=c(i, i), col="gray")
+for(i in 1:k) lines(x=c(i, i), y=c(1, m), col="gray")
+points(col(term), m-row(term)+1, pch=19,
+       cex=as.matrix(term*25+1),
+       col=rainbow(k, alpha=0.33)[col(term)])
+text((1:k)+0.3, 0, colnames(term), adj=c(1, 0.5), cex=0.8, las=3)
+text(0.3, 1:m, rownames(term)[m:1], cex=0.8)
+
+##図7.4の作成例
+install.packages("lattice")
+library(lattice)
+levelplot(term, scales=list(x=list(rot=90)))
+
+##図7.5の作成例
+install.packages("wordcloud")
+library("wordcloud")
+comparison.cloud(term, scale=c(6, 2.5), title.size=2)
+
+##図7.6の作成例
+x<-res$prob1
+hc<-hclust(dist(x), "ward.D2")
+plot(hc, hang=-1, xlab="", sub="")
+rect.hclust(hc, k=3, border=2:4)
+##トピック毎の上位10語の棒グラフ作成
+##Topic 1
+tw<-as.matrix(res$prob2[, 2])
+tw1<-sort(tw[, 1])
+barplot(tail(tw1, 10), las=2, horiz=TRUE, col=2, main=paste("Topic", 1))
+##Topic 2
+tw<-as.matrix(res$prob2[, 2])
+tw1<-sort(tw[, 1])
+barplot(tail(tw1, 10), las=2, horiz=TRUE, col=3, main=paste("Topic", 2))
+##Topic 3
+tw<-as.matrix(res$prob2[, 3])
+tw1<-sort(tw[, 1])
+barplot(tail(tw1, 10), las=2, horiz=TRUE, col=4, main=paste("Topic", 3))
+
+##pp.133-134
+##本節の内容に関するRスクリプト
+install.packages(c("slam", "tm", "topicmodels"))
+library(slam); library(tm); library(topicmodels)
+resu<-LDA(sakubun[, -32], method="Gibbs", k=3)
+topics(resu)                     #個体が属するトピック番号を返す
+terms(resu, 10)                  #トピックにおける上位10語を返す
+term<-t(posterior(resu)$term)    #トピック内の語句確率を返す
+topic<-posterior(resu)$topics    #個体がトピックに属す確率を返す 
+##図7.7の作成は，図7.6の作成と同様である．
+plot(hclust(dist(topics(resu)))) #クラスターの樹形図を作成する
+
+##pp.135
+##図7.8を作成するスクリプトを次に示す．
+sakubun<-read.csv(sakubun.path, row.names=1)
+saku<-sakubun[, -32]
+resu<-LDA(saku, method="Gibbs", k=3)
+install.packages("LDAvis")
+library(LDAvis)
+##resuに格納されているLDAの計算結果を，パッケージLDAvisが扱える形式に関数createJSONで入れ替える．
+phi=as.matrix(posterior(resu)$terms) #単語の推測確率
+theta=as.matrix(posterior(resu)$topics)#トピックの推測確率
+vocab=colnames(phi)#単語ベクトル
+doc=rowSums(saku)#各テキストの単語数
+term=colSums(saku)#各単語の使用回数
+json<-createJSON(phi=phi, theta=theta, vocab=vocab,
+                 doc.length=doc, term.frequency=term)
+install.packages("servr");
+library(servr)
+tempEncod<-options()$encoding #使用している文字コードを保存する
+options(encoding="UTF-8")#UTF-8を使用することを指定する
+serVis(json)#作図する
+options(encoding=tempEncod)#Rの中の文字コード環境を復元する
+
+##pp.143
+##本節の内容におけるトピックス数の推定のRスクリプト
+install.packages("ldatuning")
+library(ldatuning)
+tun<-FindTopicsNumber(sakubun, topics=2:10,
+                      method="Gibbs",
+                      metrics=c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014"),
+                      )
+FindTopicsNumber_plot(tun)
