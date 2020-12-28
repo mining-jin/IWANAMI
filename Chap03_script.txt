@@ -1,7 +1,0 @@
-##第3章　テキスト処理のツール
-##pp.38
-##jiebaRによる中国語形態素解析の例
-install.packages("jiebaR"); library(jiebaR)
-words = "我们想试一试形态素解析"
-tagger = worker("tag")
-tagger <= words
