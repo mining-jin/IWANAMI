@@ -3,6 +3,8 @@
 ##図8.1~9.2を作成するスクリプト
 ##ユークリッド距離とward.D2法
 sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun259f.csv"
+##または次から読み込む．
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun259f.csv"
 sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
 sakubunp<-sakubun/rowSums(sakubun)
 plot(hclust(dist(sakubunp[, -32]), "ward.D2"), hang=-1)
@@ -86,6 +88,8 @@ resM2
 ##主成分分析とt-SNE法の比較
 ##図8.6に用いたデータを読み込む
 saku11.path<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
+##または次から読み込む．
+saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
 saku11<-read.csv(saku11.path, row.names=1)#mac OSの場合：saku11<-read.csv(saku11.path, row.names=1, fileEncoding="shift-JIS")
 saku11p<-100*saku11/apply(saku11, 1, sum)
 XX<-saku11p[, 1:40]
@@ -103,6 +107,8 @@ text(sne[, 1], sne[, 2], rownames(XX), col=col)
 ##pp.164-165
 ##図8.7のUMAP作成
 saku11.path<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
+##または次から読み込む
+saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
 saku11<-read.csv(saku11.path, row.names=1)#mac OSの場合：saku11<-read.csv(saku11.path, row.names=1, fileEncoding="shift-JIS")
 saku11p<-100*saku11/apply(saku11, 1, sum)
 XX<-saku11p[, 1:40]
