@@ -2,6 +2,8 @@
 ##pp.42-43
 ##図4.1のデータをダウンロードし，作図するRコードを次に示す．
 path<-"https://mjin.doshisha.ac.jp/data/TwoPres.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/TwoPres.csv"
 data<-read.csv(path, row.names=1)#Mac OSの場合：data<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 par(mfrow=c(1, 2), mar=c(5, 5, 2, 2))#作図環境を設定する
 X1<-sort(data[,1], decr=TRUE)[1:30]
@@ -61,6 +63,8 @@ comparison.cloud(as.matrix(data))
 ##pp.48-49
 ##図4.5を作成するRコードを次に示す．
 path<-"https://mjin.doshisha.ac.jp/data/grid_plot_data.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/grid_plot_data.csv"
 mat<-read.csv(path, row.names=1)          #データを読み込む(mac OSの場合，mat<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 mat<-t(t(mat)/apply(t(mat), 1, sum))      #相対頻度に書き直す
 m<-20; X<-mat[1:m, ]                      #語数を指定する
@@ -86,6 +90,8 @@ levelplot(mat[-25, ], scales=list(x=list(rot=90)))
 ##pp.52-53
 ##表4.2の計算と図4.10を作成するRコードを次に示す．
 path<-"http://mjin.doshisha.ac.jp/data/jyoshi.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/jyoshi.csv"
 jyoshi<-read.csv(path, row.names=1)#mac OSの場合：jyoshi<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 jyoship<-100*(jyoshi/rowSums(jyoshi))
 summary(jyoship[1:10, 2])
@@ -149,6 +155,8 @@ chisq.test(X)
 ##pp.67
 ##表4.7のカイ二乗値を計算するRコードを次に示す．
 path<-"https://mjin.doshisha.ac.jp/data/grid_plot_data.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/grid_plot_data.csv"
 mat<-read.csv(path, row.names=1)#データを読み込む（mac OSの場合：mat<-read.csv(path, row.names=1, fileEncoding="shift-JIS")）
 temp<-rbind(研究=mat[1, ], その他=colSums(mat)-mat[1, ])
 temp
