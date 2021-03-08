@@ -78,6 +78,8 @@ plot(wc, pos.g, vertex.label=V(pos.g)$name)
 ##pp.86-87
 ##図5.5のデータの読み込みとグラフの作成
 anketo.path<-"http://mjin.doshisha.ac.jp/data/anketo.csv"
+##または次から読み込む．
+anketo.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/anketo.csv"
 anketo<-read.csv(anketo.path)#mac OSの場合：anketo<-read.csv(anketo.path, fileEncoding="shift-JIS")
 dim(anketo)
 #[1] 847  3  #847ペアの文節共起データセットである
