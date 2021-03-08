@@ -343,6 +343,8 @@ getBMRAggrPerformances(res, as.df=TRUE) #正解率の平均値を返す．
 ##pp.223-224
 ##10人の小説の形態素データを用いた複数分類器比較（計算に約7分かかる）
 path<-"http://mjin.doshisha.ac.jp/data/sakka10.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakka10.csv"
 sakka10<-read.csv(path, row.names=1, fileEncoding="shift-JIS") #データの読み込み
 ##データの変数は記号V2，V3のようになっている．
 ##対応する形態素ファイルはsakka10Var.csvとしてアップしている．
