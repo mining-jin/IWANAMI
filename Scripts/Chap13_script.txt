@@ -58,11 +58,19 @@ sum(diag(tab))/sum(tab)
 ##pp.290
 ##BOWの出現頻度上位の語を用いた記者の識別
 path2<-"https://mjin.doshisha.ac.jp/data/c10bow.train.csv"
+##または次から読み込む．
+path2<-"https://www.iwanami.co.jp/files/moreinfo/0298960/c10bow.train.csv"
+
 #path2<-"/Users/liuyejia/Desktop/temp/c10bow.train.csv"
+
 c10bow.train<-read.csv(path2, row.names=1)
 dim(c10bow.train) #1列は記者名である
 path2<-"https://mjin.doshisha.ac.jp/data/c10bow.test.csv"
+##または次から読み込む．
+path2<-"https://www.iwanami.co.jp/files/moreinfo/0298960/c10bow.test.csv"
+
 #path2<-"/Users/liuyejia/Desktop/temp/c10bow.test.csv"
+
 c10bow.test<-read.csv(path2, row.names=1)
 dim(c10bow.test)
 #ksvmによる記者の識別を行う
