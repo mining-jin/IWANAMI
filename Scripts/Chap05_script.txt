@@ -5,6 +5,8 @@ install.packages("igraph")
 library(igraph)
 ##まず，集計データをネットワークデータ形式に変換する．
 path<-"https://mjin.doshisha.ac.jp/data/co_occur.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/co_occur.csv"
 keitai<-read.csv(path)#データを読み込む（mac OSの場合：keitai<-read.csv(path, fileEncoding="shift-JIS")）
 keitai.g<-graph.data.frame(keitai[, 1:2])
 E(keitai.g)$weight<-keitai[, 3]#エッジに頻度の値を与える
@@ -15,6 +17,8 @@ plot(keitai.g, edge.label=E(keitai.g)$weight)#グラフを作成する
 ##pp.78
 ##ネットワークの作成と次数の計算
 path<-"https://mjin.doshisha.ac.jp/data/pos.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/pos.csv"
 pos<-read.csv(path)#mac OSの場合：pos<-read.csv(path, fileEncoding = "shift-JIS")
 pos.g<-graph.data.frame(pos[, 1:2], directed=TRUE)
 E(pos.g)$weight<-pos[, 3]
@@ -159,6 +163,8 @@ library(igraph)
 library(RColorBrewer)
 library(visNetwork)
 data.path<-"http://mjin.doshisha.ac.jp/data/anketo.csv"
+##または次から読み込む．
+data.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/anketo.csv"
 anketo<-read.csv(data.path)#mac OSの場合，anketo<-read.csv(data.path, fileEncoding="shift-JIS")
 Nrow=nrow(anketo)
 Summary<-cbind(anketo, matrix(0, Nrow, 8))
