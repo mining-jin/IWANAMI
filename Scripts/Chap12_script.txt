@@ -2,6 +2,8 @@
 ##pp.274-275
 ##パッケージFSelectionを用いた変数の情報利得と利得比の計算の例
 path<-"http://mjin.doshisha.ac.jp/data/NatsuIzumi1.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/NatsuIzumi1.csv"
 NatsuIzumi1<-read.csv(path, row.names=1)#mac OSの場合：NatsuIzumi1<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 install.packages("FSelector")
 library(FSelector)
@@ -35,6 +37,8 @@ fvis2
 ##pp.279-281
 ##Borutaを用いた変数選択の例
 path<-"http://mjin.doshisha.ac.jp/data/NatsuIzumi2.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/NatsuIzumi2.csv"
 NatsuIzumi2<-read.csv(path, row.names=1)#mac OSの場合：NatsuIzumi2<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 install.packages("Boruta")
 library(Boruta)
