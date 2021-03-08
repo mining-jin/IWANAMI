@@ -2,6 +2,8 @@
 ##pp.242
 ##上記の結果の計算
 path<-"http://mjin.doshisha.ac.jp/data/JYO113.csv"
+##または次から読み込む．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/JYO113.csv"
 akuta<-read.csv(path, row.names=1) #データの読み込み；#mac OSの場合：akuta<-read.csv(path, row.names=1, fileEncoding="shift-JIS")
 akuta.lm0<-lm(y~., akuta)          #モデルの作成
 akuta.lm1<-step(akuta.lm0)         #変数の選択
@@ -82,6 +84,8 @@ scatter.smooth(1:113, akuta$で.格助詞., lpars=lpa)
 install.packages("philentropy")
 library(philentropy) #jensen-shannon距離を求めるときに用いる
 rekidai.path<-"https://mjin.doshisha.ac.jp/data/rekidai.csv"
+##または次から読み込む．
+rekidai.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/rekidai.csv"
 rekidai<-read.csv(rekidai.path, row.names=1)#mac OSの場合：rekidai<-read.csv(rekidai.path, row.names=1, fileEncoding="shift-JIS")
 rekidaip<-rekidai/apply(rekidai, 1, sum)
 reki.jsd<-distance(rekidaip, method="jensen-shannon")
