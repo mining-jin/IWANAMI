@@ -22,6 +22,8 @@ round(w2, 4) #表6.3と比べるとd1における重みのランキングが異�
 ##pp.111
 ##本節の内容に関するRスクリプト
 sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun3f.csv"
+##または次から読み込む．
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun3f.csv"
 sakubun<-read.csv(sakubun.path, row.names=1)#mac OSの場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
 sakubun2<-sakubun[, -32]/apply(sakubun, 1, sum)
 install.packages("psych")
