@@ -76,7 +76,7 @@ plot(hclust(dist(topics(resu)))) #クラスターの樹形図を作成する
 
 ##pp.135
 ##図7.8を作成するスクリプトを次に示す．
-sakubun<-read.csv(sakubun.path, row.names=1)
+##sakubun<-read.csv(sakubun.path, row.names=1)
 saku<-sakubun[, -32]
 resu<-LDA(saku, method="Gibbs", k=3)
 install.packages(c("LDAvis","servr"))
