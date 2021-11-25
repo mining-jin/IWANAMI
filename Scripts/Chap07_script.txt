@@ -46,10 +46,11 @@ plot(hc, hang=-1, xlab="", sub="")
 rect.hclust(hc, k=3, border=2:4)
 ##トピック毎の上位10語の棒グラフ作成
 ##Topic 1
-tw<-as.matrix(res$prob2[, 2])
+tw<-as.matrix(res$prob2[, 1])
 tw1<-sort(tw[, 1])
 barplot(tail(tw1, 10), las=2, horiz=TRUE, col=2, main=paste("Topic", 1))
 ##Topic 2
+windows()
 tw<-as.matrix(res$prob2[, 2])
 tw1<-sort(tw[, 1])
 barplot(tail(tw1, 10), las=2, horiz=TRUE, col=3, main=paste("Topic", 2))
