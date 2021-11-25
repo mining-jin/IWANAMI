@@ -6,7 +6,9 @@ library(svs)
 sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun3f.csv"
 ##または次から読み込む．
 sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun3f.csv"
-sakubun<-read.csv(sakubun.path, row.names=1)#mac OSの場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
+sakubun<-read.csv(sakubun.path, row.names=1)
+##R4.0以上で正しく読み込めない場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="CP932")
+##mac OSの場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
 saku<-sakubun[, -32]
 ##用いるデータはmatrix形式に変換する必要がある．
 res<-fast_plsa(as.matrix(sakubun[, -32]), k=3)
