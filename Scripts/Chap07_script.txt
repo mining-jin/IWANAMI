@@ -55,14 +55,15 @@ tw<-as.matrix(res$prob2[, 2])
 tw1<-sort(tw[, 1])
 barplot(tail(tw1, 10), las=2, horiz=TRUE, col=3, main=paste("Topic", 2))
 ##Topic 3
+windows()
 tw<-as.matrix(res$prob2[, 3])
 tw1<-sort(tw[, 1])
 barplot(tail(tw1, 10), las=2, horiz=TRUE, col=4, main=paste("Topic", 3))
 
 ##pp.133-134
 ##本節の内容に関するRスクリプト
-install.packages(c("slam", "tm", "topicmodels"))
-library(slam); library(tm); library(topicmodels)
+install.packages("topicmodels")
+library(topicmodels)
 resu<-LDA(sakubun[, -32], method="Gibbs", k=3)
 topics(resu)                     #個体が属するトピック番号を返す
 terms(resu, 10)                  #トピックにおける上位10語を返す
@@ -86,8 +87,6 @@ doc=rowSums(saku)#各テキストの単語数
 term=colSums(saku)#各単語の使用回数
 json<-createJSON(phi=phi, theta=theta, vocab=vocab,
                  doc.length=doc, term.frequency=term)
-install.packages("servr");
-library(servr)
 tempEncod<-options()$encoding #使用している文字コードを保存する
 options(encoding="UTF-8")#UTF-8を使用することを指定する
 serVis(json)#作図する
@@ -99,6 +98,6 @@ install.packages("ldatuning")
 library(ldatuning)
 tun<-FindTopicsNumber(sakubun, topics=2:10,
                       method="Gibbs",
-                      metrics=c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014"),
+                      metrics=c("Griffiths2004", "CaoJuan2009", "Arun2010", "Deveaud2014")
                       )
 FindTopicsNumber_plot(tun)
