@@ -82,17 +82,17 @@ resu<-LDA(saku, method="Gibbs", k=3)
 install.packages("LDAvis")
 library(LDAvis)
 ##resuに格納されているLDAの計算結果を，パッケージLDAvisが扱える形式に関数createJSONで入れ替える．
-phi=as.matrix(posterior(resu)$terms) #単語の推測確率
-theta=as.matrix(posterior(resu)$topics)#トピックの推測確率
-vocab=colnames(phi)#単語ベクトル
-doc=rowSums(saku)#各テキストの単語数
-term=colSums(saku)#各単語の使用回数
+phi=as.matrix(posterior(resu)$terms)　　 #単語の推測確率
+theta=as.matrix(posterior(resu)$topics)　#トピックの推測確率
+vocab=colnames(phi)　　　　　　　　　　　　#単語ベクトル
+doc=rowSums(saku)　　　　　　　　　　　　　#各テキストの単語数
+term=colSums(saku)　　　　　　　　　　　　 #各単語の使用回数
 json<-createJSON(phi=phi, theta=theta, vocab=vocab,
                  doc.length=doc, term.frequency=term)
-tempEncod<-options()$encoding #使用している文字コードを保存する
-options(encoding="UTF-8")#UTF-8を使用することを指定する
-serVis(json)#作図する
-options(encoding=tempEncod)#Rの中の文字コード環境を復元する
+tempEncod<-options()$encoding           #使用している文字コードを保存する
+options(encoding="UTF-8")               #UTF-8を使用することを指定する
+serVis(json)                            #作図する
+options(encoding=tempEncod)             #Rの中の文字コード環境を復元する
 
 ##pp.143
 ##本節の内容におけるトピックス数の推定のRスクリプト
