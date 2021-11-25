@@ -79,7 +79,7 @@ plot(hclust(dist(topics(resu)))) #クラスターの樹形図を作成する
 sakubun<-read.csv(sakubun.path, row.names=1)
 saku<-sakubun[, -32]
 resu<-LDA(saku, method="Gibbs", k=3)
-install.packages("LDAvis")
+install.packages(c("LDAvis","servr"))
 library(LDAvis);library(servr)
 ##resuに格納されているLDAの計算結果を，パッケージLDAvisが扱える形式に関数createJSONで入れ替える．
 phi=as.matrix(posterior(resu)$terms)　　 #単語の推測確率
