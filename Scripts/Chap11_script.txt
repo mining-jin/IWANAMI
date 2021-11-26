@@ -21,7 +21,7 @@ dotplot(coef, las=2, horiz=T, cex.names=0.9)
 
 ##pp.248
 ##交差確認法によるλの推定
-install.packages("glmet")
+install.packages("glmnet")
 library(glmnet)
 X<-as.matrix(akuta[, -1]) #説明変数をマトリックスに変換
 Y<-as.matrix(akuta[, 1])  #目的変数をマトリックスに変換
