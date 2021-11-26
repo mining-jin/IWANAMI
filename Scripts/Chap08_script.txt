@@ -5,7 +5,9 @@
 sakubun.path<-"http://mjin.doshisha.ac.jp/data/sakubun259f.csv"
 ##または次から読み込む．
 sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun259f.csv"
-sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
+sakubun<-read.csv(sakubun.path, row.names=1)
+##Ｒ4.0以上の場合：sakubun<-read.csv(sakubun.path, row.names=1, fileEncoding="CP932")
+##mac OSの場合：saku11<-read.csv(sakubun.path, row.names=1, fileEncoding="shift-JIS")
 sakubunp<-sakubun/rowSums(sakubun)
 plot(hclust(dist(sakubunp[, -32]), "ward.D2"), hang=-1)
 
@@ -27,12 +29,12 @@ plot(hclust(as.dist(rjsd(sakubunp[, -32])), "ward.D2"), hang=-1)
 ##pp.153
 ##図8.3と8.4を作成するスクリプト
 ##ユークリッド距離を用いた場合
-heatmap(as.matrix(sakubunp[, -32])) #デフォルトのまま
+heatmap(as.matrix(sakubunp[, -32])) 　　　　　#デフォルトのまま
 ##個体間の非類似度はRJSD，変数間の非類似度はキャンベラ距離を用いた場合
 R<-hclust(as.dist(rjsd(sakubunp[, -32])), "ward.D2")
 C<-hclust(dist(t(sakubunp[, -32]), "can"), "ward.D2")
 heatmap(as.matrix(sakubunp[, -32]), Colv=as.dendrogram(C),
-        Rowv=as.dendrogram(R)) #図8.3の作成
+        Rowv=as.dendrogram(R))　　　　　　　  #図8.3の作成
 ##以下図8.4を作成する．
 ##引数k_row= は行のクラスター，k_col= は列のクラスターを指定する
 install.packages(c("heatmaply", "gplots"))
@@ -62,58 +64,38 @@ colnames(resM2)<-c("kmean", "ward.D", "ward.D2", "single", "complete",
 rownames(resM2)<-ind.list
 XX<-sakubunp[, -32]
 for(i in 1:leg){
-  resM2[i, 1]<-as.integer(NbClust(XX, method="kmean",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 2]<-as.integer(NbClust(XX, method="ward.D",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 3]<-as.integer(NbClust(XX, method="ward.D2",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 4]<-as.integer(NbClust(XX, method="single",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 5]<-as.integer(NbClust(XX, method="complete",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 6]<-as.integer(NbClust(XX, method="average",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 7]<-as.integer(NbClust(XX, method="mcquitty",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 8]<-as.integer(NbClust(XX, method="median",
-                                  index=ind.list[i])$Best.nc[1])
-  resM2[i, 9]<-as.integer(NbClust(XX, method="centroid",
-                                  index=ind.list[i])$Best.nc[1])
+  for(j in 1:9)
+  resM2[i, j]<-as.integer(NbClust(XX, method=colnames(resM2)[j], index=ind.list[i])$Best.nc[1])
 }
 resM2
 #<結果は省略>
 
 ##pp.161-162
 ##主成分分析とt-SNE法の比較
-##図8.6に用いたデータを読み込む
+##図8.6に用いたデータ(11人が10個の異なるテーマについた書いた作文から抽出した名詞)を読み込む
 saku11.path<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
 ##または次から読み込む．
 saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
-saku11<-read.csv(saku11.path, row.names=1)#mac OSの場合：saku11<-read.csv(saku11.path, row.names=1, fileEncoding="shift-JIS")
+saku11<-read.csv(saku11.path, row.names=1)
 saku11p<-100*saku11/apply(saku11, 1, sum)
 XX<-saku11p[, 1:40]
 col<-c(1:8, "saddlebrown", "rosybrown2")
 pca<-prcomp(XX)$x
 plot(pca[, 1], pca[, 2], pch="", xlab="PCA1", ylab="PCA2")
 text(pca[, 1], pca[, 2], rownames(XX), col=col)
+
+##t-SNE法による視覚化
 install.packages("Rtsne")
-library(Rtsne) #t-SNEのパッケージを読み込む．
-set.seed(0) #図8.6(b)を再現するため，乱数の種を指定する．
+library(Rtsne)                      #t-SNEのパッケージを読み込む．
+set.seed(0)                         #図8.6(b)を再現するため，乱数の種を指定する．
 sne<-Rtsne(as.matrix(XX))$Y
 plot(sne[, 1], sne[, 2], pch="", xlab="SNE1", ylab="SNE2")
 text(sne[, 1], sne[, 2], rownames(XX), col=col)
 
 ##pp.164-165
 ##図8.7のUMAP作成
-saku11.path<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
-##または次から読み込む
-saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
-saku11<-read.csv(saku11.path, row.names=1)#mac OSの場合：saku11<-read.csv(saku11.path, row.names=1, fileEncoding="shift-JIS")
-saku11p<-100*saku11/apply(saku11, 1, sum)
-XX<-saku11p[, 1:40]
-col<-c(1:8, "saddlebrown", "rosybrown2")
 install.packages("uwot"); library(uwot)
+col<-c(1:8, "saddlebrown", "rosybrown2")
 out<-umap(XX, n_neighbors=5)
 plot(out, type="n"); text(out[, 1], out[, 2], rownames(XX), col=col)
 out<-umap(XX, n_neighbors=15)
