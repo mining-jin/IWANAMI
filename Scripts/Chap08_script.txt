@@ -23,6 +23,7 @@ rjsd<-function(x){
 }
 ##RJSD非類似度とward.D2法
 plot(hclust(as.dist(rjsd(sakubunp[, -32])), "ward.D2"), hang=-1)
+
 ##パッケージphilentropyには50数種類の類似度と距離を計算する関数がある．その中の関数JSDはJensen-Shannon Divergenceである．
 ##関連数式は，https://joss.theoj.org/papers/10.21105/joss.00765に示されている．
 
@@ -54,49 +55,50 @@ resu$cluster #クラスタリングの結果を返す．
 ##pp.160
 install.packages("NbClust")
 library(NbClust)
-ind.list<-c("kl", "ch", "hartigan", "cindex", "db", "silhouette",
-            "duda", "pseudot2", "ratkowsky", "ball", "ptbiserial", "gap", "frey",
-            "mcclain", "gamma", "gplus", "tau", "dunn")
-leg<-length(ind.list)
-resM2<-matrix(0, leg, 9)
-colnames(resM2)<-c("kmean", "ward.D", "ward.D2", "single", "complete",
+
+##以下の18種類の指標と種類のクラスタリンク法を用いて出たsakubunpのクラスター数を推定してみよう。
+inde<-c("kl", "ch", "hartigan", "cindex", "db", "silhouette", "duda", "pseudot2", "ratkowsky", 
+　　　　　　"ball", "ptbiserial", "gap", "frey", "mcclain", "gamma", "gplus", "tau", "dunn")
+meth<-c("kmean", "ward.D", "ward.D2", "single", "complete",
                    "average", "mcquitty", "median", "centroid")
-rownames(resM2)<-ind.list
+legi<-length(inde)
+legj<-length(meth)              
+resM2<-matrix(0, legi, legj)
+rownames(resM2)<-inde
+colnames(resM2)<-meth
 XX<-sakubunp[, -32]
-for(i in 1:leg){
-  for(j in 1:9)
-  resM2[i, j]<-as.integer(NbClust(XX, method=colnames(resM2)[j], index=ind.list[i])$Best.nc[1])
+for(i in 1:legi){
+  for(j in 1:legj)
+  resM2[i, j]<-as.integer(NbClust(XX, method=meth[j], index=inde[i])$Best.nc[1])
 }
 resM2
 #<結果は省略>
 
 ##pp.161-162
 ##主成分分析とt-SNE法の比較
-##図8.6に用いたデータ(11人が10個の異なるテーマについた書いた作文から抽出した名詞)を読み込む
-saku11.path<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
-##または次から読み込む．
-saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
-saku11<-read.csv(saku11.path, row.names=1)
-saku11p<-100*saku11/apply(saku11, 1, sum)
+##図8.6に用いたデータ(11人が10個の異なるテーマについた書いた作文から抽出した名詞)を主成分分析、t-SNE、UMAPの二次元散布図を比較してみよう
 XX<-saku11p[, 1:40]
-col<-c(1:8, "saddlebrown", "rosybrown2")
+col<-c(1:8, "saddlebrown", "rosybrown2")　　　           　#テーマごとの10種類の色ベクトルを作成する
+
+##主成分散布図
 pca<-prcomp(XX)$x
 plot(pca[, 1], pca[, 2], pch="", xlab="PCA1", ylab="PCA2")
 text(pca[, 1], pca[, 2], rownames(XX), col=col)
 
 ##t-SNE法による視覚化
 install.packages("Rtsne")
-library(Rtsne)                      #t-SNEのパッケージを読み込む．
-set.seed(0)                         #図8.6(b)を再現するため，乱数の種を指定する．
-sne<-Rtsne(as.matrix(XX))$Y
-plot(sne[, 1], sne[, 2], pch="", xlab="SNE1", ylab="SNE2")
-text(sne[, 1], sne[, 2], rownames(XX), col=col)
+library(Rtsne)                                            #t-SNEのパッケージを読み込む．
+set.seed(0)
+sne<-Rtsne(as.matrix(XX))$Y                               #引数perplexityなどに依存する。デフォルトは30になっている
+plot(sne[, 1], sne[, 2], xlab="SNE1", ylab="SNE2")
+text(sne[, 1], sne[, 2], rownames(XX), col=col)           #図8.6(b)を再現するため，乱数の種を指定する．
 
 ##pp.164-165
 ##図8.7のUMAP作成
 install.packages("uwot"); library(uwot)
-col<-c(1:8, "saddlebrown", "rosybrown2")
 out<-umap(XX, n_neighbors=5)
 plot(out, type="n"); text(out[, 1], out[, 2], rownames(XX), col=col)
+
+##UMAPの結果はn_neighborsに依存する
 out<-umap(XX, n_neighbors=15)
 plot(out, type="n"); text(out[, 1], out[, 2], rownames(XX), col=col)
