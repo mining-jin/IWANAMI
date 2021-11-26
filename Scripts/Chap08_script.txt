@@ -77,9 +77,16 @@ resM2
 ##pp.161-162
 ##主成分分析とt-SNE法の比較
 ##図8.6に用いたデータ(11人が10個の異なるテーマについた書いた作文から抽出した名詞)を主成分分析、t-SNE、UMAPの二次元散布図を比較してみよう
-XX<-saku11p[, 1:40]
-col<-c(1:8, "saddlebrown", "rosybrown2")　　　           　#テーマごとの10種類の色ベクトルを作成する
+spath<-"http://mjin.doshisha.ac.jp/iwanami/data/saku11.csv"
+##または次から読み込む．
+spath<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
+saku11<-read.csv(spath,head=T,row.names=1)
+saku11p<-100*saku11/apply(saku11,1,sum)
+col<-c("#000000","#ff4b00","#03af7a", "#005aff","#4dc4ff",　
+"#990099","#804000","#67001F","#F39800","#FF5500")        #テーマごとの10種類の色ベクトルを作成する
+##col<-c(1:8, "saddlebrown", "rosybrown2")　　            #このように指定してもよい。　           　
 
+XX<-saku11p[, 1:40]
 ##主成分散布図
 pca<-prcomp(XX)$x
 plot(pca[, 1], pca[, 2], pch="", xlab="PCA1", ylab="PCA2")
@@ -95,7 +102,8 @@ text(sne[, 1], sne[, 2], rownames(XX), col=col)           #図8.6(b)を再現す
 
 ##pp.164-165
 ##図8.7のUMAP作成
-install.packages("uwot"); library(uwot)
+install.packages("uwot"); 
+library(uwot)
 out<-umap(XX, n_neighbors=5)
 plot(out, type="n"); text(out[, 1], out[, 2], rownames(XX), col=col)
 
