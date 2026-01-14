@@ -1,0 +1,1432 @@
+##
+##2024年6月R4.2.2バージョンで実証済みです。
+##
+
+#######################第3章　テキスト処理のツール
+##jiebaRによる中国語形態素解析の例
+install.packages("jiebaR"); library(jiebaR)
+words = "我?想?一?形?素解析"
+tagger = worker("tag")
+tagger <= words
+
+
+#######################第4章 テキストの基本統計と視覚化 
+###図4.1のデータをダウンロードし，作図するRスクリプト．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/TwoPres.csv"
+data<-read.csv(path,row.names=1,fileEncoding="CP932")
+par(mfrow=c(1,2),mar=c(5,5,2,2))         #作図環境を設定する
+X1<-sort(data[,1],decr=TRUE)[1:30]
+names(X1)<-rownames(data)[sort.list(data[,1],decr=TRUE)][1:30]
+barplot(sort(X1),horiz=TRUE,col="lightblue",las=2,xlab="A大学の上位30語の使用頻度")
+X2<-sort(data[,2],decr=TRUE)[1:30]
+names(X2)<-rownames(data)[sort.list(data[,2],decr=TRUE)][1:30]
+barplot(sort(X2),horiz=TRUE,col="lightblue",las=2,xlab="B大学の上位30語の使用頻度")
+
+
+###図4.2(a)(b)を作成するRスクリプト．
+par(mfrow=c(2,1),mar=c(6,5,2,2))
+sor<-sort.list(data[1:30,1],decr=TRUE)
+barplot(t(data[sor,]),col=c(2,4),las=2,ylab="頻度",
+beside=TRUE,sub="（a）頻度データの棒グラフ")
+legend(40,max(data[sor,])-2,colnames(data),col=c(2,4),
+pch=c(22,22),pt.bg=c(2,4))
+datap<-100*t(data)/colSums(data)  　　　 #相対頻度に変換
+sor<-sort.list(datap[1,1:30],decr=TRUE)
+barplot(datap[,sor],col=c(2,4),las=2,ylab="相対頻度(単位は%)",
+beside=TRUE,sub="(b)相対頻度データの棒グラフ")
+legend(40,max(datap[,sor])-1,colnames(data),col=c(2,4),
+pch=c(22,22),pt.bg=c(2,4))
+
+dev.off()                                #作図デバイスを終了する
+
+###図4.3を作成するRスクリプト．
+zscore<-function(X){
+  x<-X[,1];y<-X[,2];        　　　　　　 #2列のデータをx,yに入れる
+  xsum<-sum(x);ysum<-sum(y) 　　　　　　 #2列のデータの合計を求める
+  nr<-length(x)              　　　　　　#異なり語の数を数える
+  res<-matrix(0,nr,2)        　　　　　　#結果を入れるマトリックスを用意する
+  colnames(res)<-c("z-score","p-value")　#ラベルを付ける
+  xp<-x/xsum;yp<-y/ysum#割合を求める
+  for(i in 1:nr){              　　　　　#すべての語句のzスコアを求める
+  P<-(x[i]+y[i])/(xsum+ysum)　　　　　　 #混合比率を求める
+  sigma<-sqrt(P*(1-P)*(1/xsum+1/ysum)) 　#標準偏差を求める
+  res[i,1]<-abs(xp[i]-yp[i])/sigma       #zスコアの絶対値を求める
+  res[i,2]<-2*(1-pnorm(res[i,1]))        #zスコアのP値を求める
+}
+score<-cbind(X,100*xp,100*yp,round(res,4))  #出力データをまとめる
+result<-score[sort.list(score[,5],decreasing=TRUE),] #zの大きさ順に並べ替える
+result
+}
+temp<-zscore(data)
+barplot(t(temp[1:30,3:4]),beside=TRUE,las=2,
+col=c(2,4),legend=colnames(data),ylab="相対頻度(%)")
+
+###図4.4を作成するRスクリプト．
+install.packages("wordcloud")
+library(wordcloud)
+comparison.cloud(as.matrix(data))
+
+###図4.5を作成するRスクリプト．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/grid_plot_data.csv"
+mat<-read.csv(path,row.names=1,fileEncoding="CP932")          #データを読み込む
+mat<-t(t(mat)/apply(t(mat),1,sum))       #相対頻度に書き直す
+m<-20;X<-mat[1:m,]                       #語数を指定する
+
+##図のキャンバス領域を決める
+plot(0,0,col="white",ylim=c(-0,m),xlim=c(-0,ncol(X)),
+xlab="",ylab="",axes=FALSE)
+for(i in 1:m)
+lines(x=c(1,ncol(X)),y=c(i,i),col="gray") #横線を書く
+for(i in 1:ncol(X))
+lines(x=c(i,i),y=c(1,m),col="gray")       #縦線を書く
+
+##縦横線の交差点にデータをプロットする
+points(col(X),nrow(X)-row(X)+1,pch=19,
+cex=as.matrix(X*25+1),col=rainbow(ncol(X),
+alpha=0.33)[col(X)])
+text((1:8)+0.3,0,colnames(X),adj=c(1,0.5),cex=0.8,las=3)
+text(0,1:m,rownames(mat)[m:1],cex=0.8)
+
+###図4.6を作成するRスクリプト．
+install.packages("lattice")
+library(lattice)
+levelplot(mat[-25,],scales=list(x=list(rot=90)))
+
+###表4.2の計算と図4.10を作成するRスクリプト．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/jyoshi.csv"
+jyoshi<-read.csv(path,row.names=1,fileEncoding="CP932")#テシタを読み込む
+jyoship<-100*(jyoshi/rowSums(jyoshi))#百分率を求める
+summary(jyoship[1:10,2])
+summary(jyoship[11:20,2])
+
+###図4.10を作成する
+lab.txt<-c("夏目漱石","泉鏡花")
+boxplot(jyoship[,2]~rep(lab.txt,each=10),col="lightblue")
+points(x=c(rep(1:2,each=10)+rnorm(20,0,0.15)),y=c(jyoship[1:10,2],jyoship[11:20,2]),col="gray4",cex=0.8,pch=8)
+
+
+###図4.11を作成するスクリプト．
+par(mar=c(7,4.5,2,2))
+vnum<-1:15
+lab.txt<-c("夏目漱石","泉鏡花")
+boxplot(jyoship[1:10,vnum],boxwex=0.15,at=vnum-0.1,
+las=2,col=2,ylim=c(0,max(jyoship)),ylab="使用率（単位は％）")
+boxplot(jyoship[11:20,vnum],boxwex=0.15,at=vnum+0.2,
+las=2,col=7,add=TRUE,axes=FALSE)
+legend(10,14,lab.txt,pch=22,pt.bg=c(2,7),pt.cex=2,
+cex=1.3)
+
+###図4.12を作成するスクリプト．
+plot(jyoship[,2],jyoship[,11],type="n",xlab="は/副助詞",ylab="の/格助詞")
+text(jyoship[,2],jyoship[,11],rownames(jyoship))
+
+###図4.14と図4.15を作成するスクリプト．
+###図4.14を作成する
+install.packages("psych")
+library(psych)
+y<-rep(c("夏目漱石","泉鏡花"),each=10)
+error.bars.by(jyoship[,2],y,eyes=FALSE,ylab="使用率(単位は％)",xlab="は/副助詞",v.labels=y[c(1,11)])
+grid()
+
+##図4.15を作成する
+par(mar=c(7,4.5,2,2))
+error.bars.by(jyoship[,1:15],y,las=2,eyes=FALSE,xlab="",ylab="使用率（単位は％）",by.var=FALSE)
+legend(10,14,y[c(1,11)],lty=1:2,col=c(1,4),pt.cex=2)
+
+##上側確率の計算とt検定のスクリプト．
+1-pt(7.59,16)
+t.test(jyoship[1:10,2],jyoship[11:20,2])
+
+
+##割合差の検定統計量の計算スクリプト．
+P<-(0+6)/(226+164)
+abs(-6/164)/sqrt(P*(1-P)*(1/226+1/164))
+1-pnorm(2.897841)
+2*(1-pnorm(2.897841))
+head(zscore(data))
+
+##カイ2乗検定統計量を求めるRスクリプト．
+1-pchisq(0.00115,1)
+X<-matrix(c(11,7,215,157),2)
+chisq.test(X)
+
+###表4.7のカイ2乗値を計算するRスクリプト．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/grid_plot_data.csv"
+mat<-read.csv(path,row.names=1,fileEncoding="CP932")#データを読み込む
+temp<-rbind(研究=mat[1,],その他=colSums(mat)-mat[1,])
+temp
+chisq.test(temp)
+
+##項目ごとのp値に基づいて，差異が大きい順に並べ替える自作関数の例．
+chisq2<-function(x)
+{ tal<-apply(x,2,sum)                    　 #列の合計を求める
+  nr<-nrow(x)                               #行の数を求める
+  nc<-ncol(x)                               #列の数を求める
+  te<-matrix(0,nr,1)                        #保存領域を確保
+  y<-cbind(x,p.value=te)                    #データの後ろに計算結果を格納
+  for(i in 1:nr){                           #繰り返す回数
+    temp<-rbind(x[i,],tal-x[i,])            #分割表を作成
+    y[i,nc+1]<-chisq.test(temp)$p.value     #p値を計算
+ }
+ yy<-round(y[sort.list(y[,nc+1]),],4)       #p値に基づいてソートする
+ yy
+}
+chisq2(mat)
+
+###図4.17の作成Ｒスクリプト
+fuku<-read.csv("https://www.iwanami.co.jp/files/moreinfo/0298960/FUKUDA.csv",row.names=1,fileEncoding="CP932")
+#R-4.0以後(JM)エンコーディング問題の対応　fileEncoding="CP932"を追加
+head(fuku)　　　　                            #データの初めの6行を見る
+r<-1:nrow(fuku)　　　　　　　                 #rに単語のランクIDを入れる
+
+##表4.8のデータフレーム作成
+fuku.tab<-data.frame(r=r,f=fuku[,1],x=log(r),y=log(fuku[,1]))
+par(mfrow=c(1,2))                             #2つのグラフを並べて表示
+plot(r,fuku[,1],xlab="ランク",ylab="度数")    #データの前の2列の折れ線グラフ
+plot(log(r),log(fuku[,1]),xlab="ランクの対数",ylab="度数の対数")
+md1<-lm(log(fuku[,1])~log(r))
+abline(md1,col=2)
+
+##Ｋ特性値を計算するＲスクリプト
+fukuT<-table(fuku[,1])                        #表4.9の計算(1)
+fukuD<-data.frame(fukuT)　　　            　  #表4.9の計算形式の返還
+fukuD[,1]<-as.integer(levels(fukuD[,1]))
+N<-sum(fukuD[,1]*fukuD[,2])                   #述べ語数N
+M2V<-sum(fukuD[,1]^2*fukuD[,2])	              #式の分子初めの項目の計算
+K<-10^4*(M2V-N)/N^2	                      #K値の計算
+N;M2V;K　　　　　　　　　　   　              #計算結果を返す
+
+#安倍元総理のデータの読み込み
+abe<-read.csv("https://www.iwanami.co.jp/files/moreinfo/0298960/abe.csv",row.names=1,fileEncoding="CP932")
+
+dev.off()          	                      #作図デバイスを終了する
+
+#######################第5章 共起とbigramのネットワーク分析
+install.packages("igraph")
+library(igraph)
+##集計データをネットワークデータ形式に変換する．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/co_occur.csv"
+keitai<-read.csv(path,fileEncoding="CP932")  #データを読み込む
+keitai.g<-graph.data.frame(keitai[,1:2])
+E(keitai.g)$weight<-keitai[,3]               #エッジに頻度の値を与える
+V(keitai.g)$color<-"yellowgreen"             #ノードの色を指定する
+plot(keitai.g,edge.label=E(keitai.g)$weight) #グラフを作成する
+
+##図5.1はパッケージvisNetworkを用いた．
+install.packages("visNetwork")
+library(visNetwork)
+data <- toVisNetworkData(keitai.g)
+visNetwork(data$nodes, data$edges)%>% 
+visIgraphLayout(layout = "layout_with_fr") %>%
+visEdges(arrows = "middle")
+
+
+##統計量の計算
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/pos.csv"
+pos<-read.csv(path,fileEncoding="CP932")
+pos.g<-graph.data.frame(pos[,1:2],directed=TRUE)
+E(pos.g)$weight<-pos[,3]
+V(pos.g)$color<-"lightblue"
+
+##tkplot(pos.g,edge.label=E(pos.g)$weight)#Rversion3.5,3.6
+##visNetworkを用いる．
+##install.packages("visNetwork")
+##library(visNetwork)
+data<-toVisNetworkData(pos.g)
+visNetwork(data$nodes,data$edges)%>%
+visIgraphLayout(layout="layout_with_fr")%>%
+visEdges(arrows="middle")
+
+##次数の計算
+igraph::degree(pos.g)#矢印の方向を無視した次数
+igraph::degree(pos.g,mod="out")           #出力方向のエッジの次数
+degree(pos.g,mod="in")                    #入力方向のエッジの次数
+
+##異なるネットワークの次数の比較
+graph.density(keitai.g)                   #図5.1の密度
+graph.density(pos.g)                      #図5.2の密度
+
+##中心性の計算
+##近接中心性の計算
+closeness(keitai.g,mod="all")             #方向を無視した近接中心性
+closeness(pos.g,mod="all")
+##媒介中心性の計算
+betweenness(keitai.g)
+betweenness(pos.g)
+##PageRankの計算
+page_rank(keitai.g)                     #「分析」に係るノードの数がもっとも多い
+##「分析」の値がもっとも大きい．
+##図5.1からわかるように,「分析」に矢印が向いている辺が5本でもっとも多い．
+
+##クラスター係数の計算
+##引数type="global"はグロバルクラスター係数の指定であり，type="local"はローカルクラスタ係数である．
+transitivity(keitai.g,type="global")
+transitivity(keitai.g,type="local")
+transitivity(pos.g,type="global")
+transitivity(pos.g,type="local")
+
+##ネットワークグラフのパスの長さの計算
+average.path.length(keitai.g)
+average.path.length(pos.g)
+
+##コミュニティ分割
+install.packages("linkcomm")
+library(linkcomm)
+sp<-spinglass.community(pos.g)          #焼き増し法
+wc<-walktrap.community(pos.g)           #ランダム・ウォーク法
+par(mfrow=c(1,2))
+plot(sp,pos.g,vertex.label=V(pos.g)$name)
+plot(wc,pos.g,vertex.label=V(pos.g)$name)
+
+dev.off()
+##ネットワークの例：アンケート調査のデータを読み込む
+anketo.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/anketo.csv"
+anketo<-read.csv(anketo.path,fileEncoding="CP932")
+dim(anketo)                             #847ペアの文節共起データセットである
+head(anketo)
+g<-graph.data.frame(anketo)             #ネットワークオブジェクトに変換
+E(g)$weight<-anketo[,3]                 #第3列が頻度をエッジの重みとする
+plot(g,vertex.size=1,vertex.label="",edge.arrow.size=0.2)
+
+##次数を計算し，「もっと」に関するネットワークグラフを作成する．
+sort(degree(g),decreasing=TRUE)[1:5]
+sort.list(degree(g),decreasing=TRUE)[1:5]
+##上記のコマンドで次数がもっとも高いのは3番目であることがわかる
+##次の2行のコマンドで，グラフgの中の3番目のノードからパスが1であるサブグラフを抽出する．
+ng<-neighborhood(g,1,3)[[1]]
+motto<-induced.subgraph(g,ng)
+plot(motto,vertex.size=1,edge.arrow.size=0.5,
+edge.label=E(motto)$weight,vertex.label.cex=1.2,vertex.label.color="black")
+
+
+###図5.6は，上記のmottoを次のコマンドで作成している．
+library(visNetwork)#ネットワークの視覚化パッケージ
+visData<-toVisNetworkData(motto)
+weights<-visData$edges[,3]
+nodes<-data.frame(visData$nodes,font.size=10,size=10)
+edges<-data.frame(visData$edges,label=weights,arrows="to")
+visNetwork(nodes,edges)
+
+
+###図5.7を作成するRスクリプト
+##グラフgから1番目のノードから周辺パスが4までのノードを抽出する．
+gakuhi<-induced.subgraph(g,neighborhood(g,4,1)[[1]])
+##図5.7は次のコマンドで作成している．
+
+###図5.8を作成するRスクリプト
+visData<-toVisNetworkData(gakuhi)
+weights<-visData$edges[,3]
+deg<-scale(degree(gakuhi),center=FALSE)+1
+nodSize<-10*round(deg)
+nodes<-data.frame(visData$nodes,font.size=25,size=nodSize)
+edges<-data.frame(visData$edges,label=weights,arrows="to",width=weights,smooth=TRUE,shadow=TRUE)
+visNetwork(nodes,edges,width="100%",height="600px")%>%
+visIgraphLayout(layout="layout.fruchterman.reingold")
+
+###図5.9を作成するスクリプト
+##install.packages("linkcomm")
+##library(linkcomm)
+set.seed(100)
+CO<-cluster_optimal(gakuhi)
+plot(CO,gakuhi,vertex.label=(gakuhi)$name,vertex.size=2,vertex.label.dist=1,vertex.label.size=0.6,vertex.label.color="black",layout=layout_with_gem,edge.arrow.size=0.5,edge.color="grey50")
+
+##パッケージvisNetworkを用いた図5.9の作成
+visData<-toVisNetworkData(gakuhi)
+nodSize<-5*(igraph::degree(gakuhi))                   #ノードのサイズの調整
+weights<-visData$edges[,3]
+comm<-as.numeric(membership(CO))
+len<-length(table(comm))                              #コミュニティの数を計算
+##上記の結果を用いてノードとエッジのデザインを指定する
+library(RColorBrewer)
+cols<-brewer.pal(len,"Paired")                        #ノードの色を調整する場合
+nodes<-data.frame(visData$nodes,color=cols[comm],size=nodSize)
+edges<-data.frame(visData$edges,label=weights,arrows="to",
+smooth=TRUE,shadow=TRUE)
+visNetwork(nodes,edges)
+
+########################第6章テキストの特徴分析
+##TF-IDFを計算するRスクリプト．
+x<-matrix(c(1,3,0,0,0,0,2,1,3,2,2,1,0,2,3,1,0,2,1,0),5)   #表6.2の入力
+##2種類の重みTF-IDFを計算する．
+N<-nrow(x)
+M<-ncol(x)
+w1<-matrix(0,N,M)
+w2<-matrix(0,N,M)
+for(i in 1:N){
+  for(j in 1:M){
+    df=N/sum(as.integer(x[,j]))
+    w1[i,j]<-x[i,j]*log(df)
+    w2[i,j]<-log(x[i,j]+1)*log(df+1)
+  }
+}
+round(w1,4)
+round(w2,4)
+
+###主成分分析
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun3f.csv"
+sakubun<-read.csv(sakubun.path,row.names=1,fileEncoding="CP932")
+sakubun2<-sakubun[,-32]/apply(sakubun,1,sum)
+install.packages("psych")
+library(psych)
+
+###図6.3の作成
+fa.parallel(sakubun2,fa="pc")
+##サンプリングデータを生成するときには，データによっては正しく生成できない場合がある．そのときにはシミュレーションの結果を目安とした方がよい．
+##パッケージparanの中の関数paranを用いてもよい．
+install.packages("FactoMineR")
+library(FactoMineR)
+##相関係数行列を用いた主成分分析と図6.4の作成
+pca<-PCA(sakubun2)
+round(pca$eig,3)                         #固有値などを返す．
+ki<-round(pca$eig[1:2,2],2)              #寄与率をkiに保存する．
+
+###図6.5（a）の作成
+biplot(pca$ind$coord,pca$var$coord,xlab=paste("第1主成分(",ki[1],"%)"),ylab=paste("第2主成分(",ki[2],"%)"))
+
+##分散共分散行列を用いた主成分分析と図6.5（b）の作成を行う
+pca<-PCA(sakubun2,scale.unit=FALSE)
+ki<-round(pca$eig[1:2,2],2)
+biplot(pca$ind$coord,pca$var$coord,xlab=paste("第1主成分(",ki[1],"%)"),ylab=paste("第2主成分(",ki[2],"%)"))
+
+###対応分析
+res<-CA(sakubun)                         #図6.6の作成
+res$eig                                  #固有値
+res$row$coord                            #行のスコア
+res$col$coord　                        　#列のスコア
+
+###意味解析・特異値分解
+sakubunp<-sakubun[,-32]/rowSums(sakubun)
+res<-svd(sakubunp)
+X<-res$u
+rownames(X)<-rownames(sakubunp)
+Y<-res$v
+rownames(Y)<-colnames(sakubunp)
+biplot(scale(X),scale(Y),xlab="第1成分",ylab="第2成分")
+
+###非負行列因子分解
+##まず，NMFに用いるパッケージをインストールする．
+##R3.**の場合は次のコードを実行してください。
+#source("http://bioconductor.org/biocLite.R")
+#biocLite("Biobase")     #NMFで必要なパッケージをインストール
+
+##R4.0以後の場合
+if(!requireNamespace("BiocManager",quietly=TRUE))
+install.packages("BiocManager")
+BiocManager::install("Biobase")
+##画面にパッケージインストールメッセージが現れる．
+##Update all/some/none? [a/s/n]: 
+##急ぎの場合はsを時間が十分ある場合はaを入力し，Enterキーを押す
+
+install.packages("NMF")
+library(NMF)
+set.seed(0)
+res<-nmf(sakubunp,3)　                     #3因子のNMFを行う．
+basis(res)　　　　　　　                   #行のスコアを返す．
+basismap(res)　　　　　                    #図6.9を作成する．
+coef(res)                                  #列のスコアを返す．
+##scoef(res,scale=1)で各変数のスコアの合計が1になるよう標準化すること
+ができる．
+coefmap(res)                               #図6.10を作成する．
+consensusmap(res)                          #図6.11を作成する．
+
+###################第7章トピックモデル
+##ｐLSA
+install.packages("svs")
+library(svs)
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun3f.csv"
+sakubun<-read.csv(sakubun.path,row.names=1,fileEncoding="CP932")
+saku<-sakubun[,-32]
+##用いるデータはmatrix形式に変換する必要がある．
+res<-fast_plsa(as.matrix(sakubun[,-32]),k=3)
+res$prob1                                  #個体がトピックに属する確率
+res$prob2                                  #変数がトピック内における確率
+
+###図7.3の作成例
+term<-res$prob2
+m<-nrow(term)
+k<-ncol(term)
+colnames(term)<-c("Topic1","Topic2","Topic3")
+par(mar=c(4.2,5,2,2))
+plot(0,0,col="white",ylim=c(-0,m+2),xlim=c(-0,k+1),xlab="",ylab="",axes=FALSE)
+
+for(i in 1:m)lines(x=c(1,k),y=c(i,i),col="gray")
+for(i in 1:k)lines(x=c(i,i),y=c(1,m),col="gray")
+points(col(term),m-row(term)+1,pch=19,cex=as.matrix(term*25+1),col=rainbow(k,alpha=0.33)[col(term)])
+text((1:k)+0.3,0,colnames(term),adj=c(1,0.5),cex=0.8,las=3)
+text(0.3,1:m,rownames(term)[m:1],cex=0.8)
+
+###図7.4の作成例
+install.packages("lattice")
+library(lattice)
+levelplot(term,scales=list(x=list(rot=90)))
+
+###図7.5の作成例
+install.packages("wordcloud")
+library("wordcloud")
+comparison.cloud(term,scale=c(6,2.5),title.size=2)
+
+###図7.6の作成例
+x<-res$prob1
+hc<-hclust(dist(x),"ward.D2")
+plot(hc,hang=-1,xlab="",sub="")           #クラスター樹形図を作成する
+rect.hclust(hc,k=3,border=2:4)
+
+##トピックごとの上位10語の棒グラフ作成
+##Topic1
+tw<-as.matrix(res$prob2[,1])
+tw1<-sort(tw[,1])
+barplot(tail(tw1,10),las=2,horiz=TRUE,col=2,main=paste("Topic",1))
+
+##Topic2
+tw<-as.matrix(res$prob2[,2])
+tw1<-sort(tw[,1])
+barplot(tail(tw1,10),las=2,horiz=TRUE,col=3,main=paste("Topic",2))
+
+##Topic3
+tw<-as.matrix(res$prob2[,3])
+tw1<-sort(tw[,1])
+barplot(tail(tw1,10),las=2,horiz=TRUE,col=4,main=paste("Topic",3))
+
+##LDAに関するスクリプト
+install.packages(c("slam","tm","topicmodels"))
+library(slam);library(tm);library(topicmodels)
+resu<-LDA(sakubun[,-32],method<-"Gibbs",k=3)
+topics(resu)　　　　　　　　　　　　  　 #個体が属するトピック番号を返す
+terms(resu,10)                           #トピックにおける上位10語を返す
+term<-t(posterior(resu)$term)　　　　    #トピック内の語句の確率を返す
+topic<-posterior(resu)$topics            #個体がトピックに属す確率を返す
+
+##図7.7の作成は，図7.6の作成と同様である．
+plot(hclust(dist(topics(resu))))          #クラスターの樹形図を作成する
+
+##図7.8を作成するスクリプト
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun3f.csv"
+sakubun<-read.csv(sakubun.path,row.names=1,fileEncoding="CP932")
+library(slam);library(tm);library(topicmodels)
+saku<-sakubun[,-32]
+resu<-LDA(saku,method="Gibbs",k=3)        #３つのトピックLDAを計算する
+
+install.packages("LDAvis")
+library(LDAvis)
+##resuに格納されているLDAの計算結果を，パッケージLDAvisが扱える形式に関数createJSONで入れ替える．
+phi<-as.matrix(posterior(resu)$terms)     #単語の推測確率
+theta<-as.matrix(posterior(resu)$topics)  #トピックの推測確率
+vocab<-colnames(phi)                      #単語ベクトル
+doc<-rowSums(saku)                        #各テキストの単語数
+term<-colSums(saku)                       #各単語の使用回数
+json<-createJSON(phi=phi,theta=theta,vocab=vocab,doc.length=doc,term.frequency=term)
+
+##Webブラウザーで作図するためのパッケージをインストールする．
+install.packages("servr")
+library(servr)
+
+tempEncod <- options()$encoding          # 使用している文字スクリプトを保存する
+options(encoding = "UTF-8")              # UTF-8を使用することを指定する
+serVis(json)                             # 作図する
+options(encoding = tempEncod)            # Rの中の文字スクリプト環境を復元する
+## 作成された画面上のトピックバブルにマウスポインタを合わせるとそのトピックに対応する語句の棒グラフが入れ替えられる．
+## 使用しているマシンにインストーるされたパッケージxfunのバージョンが0.42未満の場合グラフが作成されない場合がある。
+#packageVersion("xfun")
+#remove.packages("xfun")
+#install.packages("xfun", version = "0.43")
+
+###トピックの数kの推定
+#install.packages("ldatuning")
+library(ldatuning)
+library(topicmodels)
+tun<-FindTopicsNumber(sakubun, topics=2:10,method="Gibbs",metrics=c("Griffiths2004", "CaoJuan2009", "Arun2010","Deveaud2014"))
+FindTopicsNumber_plot(tun)
+
+#############第8章テキストのクラスタリング
+sakubun.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakubun259f.csv"
+sakubun<-read.csv(sakubun.path, row.names=1,fileEncoding="CP932")
+sakubunp<-sakubun/rowSums(sakubun)
+plot(hclust(dist(sakubunp[, -32]), "ward.D2"), hang=-1)
+##RJSD 非類似度
+rjsd<-function(x){
+    x<-x+1e-006 #分母がゼロにならないようにする
+    x<-(x/apply(x, 1, sum))
+    apply(x, 1, function(y){ #各行に次の関数を適用する
+      apply(x, 1, function(z){
+      rjsd<-sqrt(sum((y*log(2*y/(y+z)) +z*log(2*z/(y+z)))/2))
+       })
+     })
+   }
+##RJSD 非類似度と ward.D2 法
+plot(hclust(as.dist(rjsd(sakubunp[, -32])), "ward.D2"), hang=-1)
+##パッケージ philentropy には四十数種類の類似度と距離を計算する関数がある．
+##関数式は，https://joss.theoj.org/papers/10.21105/joss.00765 に示されている．
+
+
+###図8.3と図8.4を作成するRスクリプト
+##ユークリッド距離を用いた場合
+heatmap(as.matrix(sakubunp[, -32]))   #デフォルトのまま
+
+##個体間の非類似度は RJSD, 変数間の非類似度はキャンベラ距離を用いた場合
+R<-hclust(as.dist(rjsd(sakubunp[, -32])), "ward.D2")
+C<-hclust(dist(t(sakubunp[, -32]), "can"), "ward.D2")
+heatmap(as.matrix(sakubunp[, -32]), Colv=as.dendrogram(C),
+Rowv=as.dendrogram(R))               　　　　　　　 #図8.3の作成
+##以下図 8. 4 を作成する．
+##引数 k_row= は行のクラスター, k_col = は列のクラスターを指定する．
+install.packages("htmltools", version = "0.5.8")
+install.packages(c("heatmaply","gplots"))
+library(heatmaply);library(gplots)
+
+
+heatmaply(as.matrix(sakubunp[, -32]),Colv=as.dendrogram(C),Rowv=as.dendrogram(R),k_row = 3, k_col = 4)              　　　　　　　  #図8.4の作成
+
+###k平均法
+set.seed(10)
+resu<-kmeans(sakubunp[, -32], center=3)
+summary(resu)
+resu$cluster　#クラスタリングの結果を返す
+
+
+# 上記のk平均法はユークリッド距離を用いている。自分が定義した距離を用いてk平均法を実行するためには次のパッケージをお進める。
+# この部分はテキストの名中にはない。
+
+install.packages("flexclust")
+library(flexclust)
+
+res <- kcca(sakubunp[,-32], k=3, family=kccaFamily("kmeans",dist=rjsd),control=list(initcent="kmeanspp"))
+#"kmedians"
+#各グループの個体数を返す。
+res
+
+#各個体が所属するクラスタリングの番号を示す
+res@cluster
+
+#各クラスタリングの中の変数の寄与の度合を棒グラフでします。
+barplot(res)
+
+
+##クラスター数の推定
+install.packages("NbClust")
+library(NbClust)
+ind.list<-c("kl", "ch", "hartigan", "cindex", "db",
+"silhouette", "duda", "pseudot2", "beale","ratkowsky", "ball",
+"ptbiserial", "gap", "frey", "mcclain", "gamma", "gplus",
+"tau", "dunn","sdindex","sdbw")
+leg<-length(ind.list)
+resM2<-matrix(0, leg, 9)
+colnames(resM2)<-c("kmean", "ward.D", "ward.D2", "single",
+"complete", "average", "mcquitty", "median", "centroid")
+rownames(resM2)<-ind.list
+XX<-sakubunp[, -32]
+for(i in 1:leg){
+    resM2[i, 1]<-as.integer(NbClust(XX, method="kmean",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 2]<-as.integer(NbClust(XX, method="ward.D",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 3]<-as.integer(NbClust(XX, method="ward.D2",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 4]<-as.integer(NbClust(XX, method="single",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 5]<-as.integer(NbClust(XX, method="complete",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 6]<-as.integer(NbClust(XX, method="average",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 7]<-as.integer(NbClust(XX, method="mcquitty",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 8]<-as.integer(NbClust(XX, method="median",
+    index=ind.list[i])$Best.nc[1])
+    resM2[i, 9]<-as.integer(NbClust(XX, method="centroid",
+    index=ind.list[i])$Best.nc[1])
+    }
+resM2
+median(resM2)
+
+###主成分分析とt-SNE法の比較
+saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
+saku11<-read.csv(saku11.path,row.names=1,fileEncoding="CP932")
+saku11p<-100*saku11/apply(saku11, 1, sum)
+XX<-saku11p[, 1:40]
+col<-c(1:8, "saddlebrown", "rosybrown2")
+pca<-prcomp(XX)$x
+plot(pca[, 1], pca[, 2], pch="", xlab="第1主成分", ylab="第2主成分")
+text(pca[, 1], pca[, 2], rownames(XX), col=col)
+
+
+install.packages("Rtsne")
+library(Rtsne)　　　　　　　　                   #t-SNEのパッケージを読み込む．
+set.seed(0) 　　　　　　　　　                   #乱数の種を指定する
+sne <-Rtsne(as.matrix(XX))$Y  
+plot(sne[, 1], sne[, 2], pch="", xlab="t-SNEの第1成分", ylab="t-SNEの第2成分")
+text(sne[, 1], sne[, 2], rownames(XX), col=col)
+
+###図8.7のUMAPの作成
+saku11.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/saku11.csv"
+saku11<-read.csv(saku11.path,row.names=1,fileEncoding="CP932")
+saku11p<-100*saku11/apply(saku11,1,sum)
+XX<-saku11p[,1:40]
+col<-c(1:8,"saddlebrown","rosybrown2")
+install.packages("uwot")
+library(uwot)
+par(mfrow=c(1,2))
+out<-umap(XX,n_neighbors=5)
+plot(out,type="n")                              #二つのグラフを横並べて作成する．
+text(out[,1],out[,2],rownames(XX),col=col)
+
+out<-umap(XX,n_neighbors=15)
+plot(out,type="n")
+text(out[,1],out[,2],rownames(XX),col=col)
+dev.off()                                        #グラフの画面を閉じる
+
+###########第9章アソシエーション分析法による共起分析
+##関数リストを用いる.リストの中のc( )は一人の回答文の自立語のベクトルである．
+data1<-list(
+  c("学費","下げ","講義","充実","はかっ","欲しい","適当","授業","いる","思わ","れる","先生","かなり","居る"),
+  c("学費","もう少し","安く","欲しい"),
+  c("休み","期間","多い","割","学費","高い","何","使わ","いる","はっきりし","欲しい"),
+  c("授業","担当","教員","生徒","選ば","欲しい"),
+  c("学費","削減","あと","ロッカー"),
+  c("個人","ロッカー","作っ","下さい","自動車","通学","認め"),
+  c("学費","軽減"),
+  c("学費","もっと","安く","欲しい"),
+  c("クーラー","つけ","欲しい"),
+  c("学費","安く","下さい")
+)
+
+install.packages("arules");
+library(arules)
+data1.tran<-as(data1,"transactions") 
+itemFrequencyPlot(data1.tran,type="absolute",cex=0.7,col="lightblue",ylab="度数")　   #図9.1の作成
+
+##apriori によるルール抽出．
+data.ap<-apriori(data1.tran)	　             　#ルールを集計と評価指標の計算
+data.ap1<- sort(data.ap,by="support")　          #支持度を基準に並び替え
+inspect(head(data.ap1,n=10)) 		       　#上位10個のルールの抽出
+
+##apriori によるルール抽出．
+data.ap<-apriori(data1.tran)	　　             #ルールを集計と評価指標の計算
+data.ap1<- sort(data.ap,by="support")　          #支持度を基準に並び替え
+inspect(head(data.ap1,n=10)) 		  　     #上位10個のルールの抽出
+
+##右辺に「安く」を含んだルールを抽出．
+data.ap2 <- subset(data.ap, subset =  rhs %in% "安く" )
+inspect(sort(data.ap2))
+
+##ルールのネットワークグラフ作成．
+install.packages("arulesViz")
+library(arulesViz)
+plot(data.ap2, method ="graph", engine="htmlwidget", igraphLayout = "layout_in_circle")
+
+##eclat の使用例．
+data.ec<-eclat(data1.tran)
+inspect(sort(data.ec, by="support")[1:6])
+
+##条件にマッチするルールを返す．
+data.ec2 <-data.ec [size(data.ec) ==2]
+inspect(sort(data.ec2, by="support")[1:5])
+
+######第10章テキストの分類分析
+##スパムメールのデータセット．
+install.packages("kernlab")
+library(kernlab)
+data(spam)
+dim(spam)
+str(spam)
+##変数 type が spam であるか nonspam であるかを示す因子データである．
+##学習と予測のプロセスを説明するため，データセットの中から10分の1をランダムに抽出してテストデータとし，それ以外を学習データとする．
+m<-round(nrow(spam)/10)                              #10分の1の数を計算する．
+set.seed(1)                                          #乱数の種を指定する．
+sp<-sample(1:nrow(spam), m)                          #標本の行の番号をサンプリングする．
+train_data<-spam[-sp, ]                              #学習用データを作成する．
+test_data<-spam[sp, ]                                #テスト用データを作成する．
+
+###knnを用いたスパムメールの分類の例
+##k-NN 法を用いるためにはまず k を指定しなければならない．
+##とりあえず k=3 で行ってみよう．
+install.packages(c("class","e1071","caret"))
+library(class)
+library(e1071)
+library(caret)
+knn.md1<-knn(train_data[, -58], test_data[, -58],train_data[, 58], k=3) #学習データを用いてテストを行う．
+conM<-table(test_data[, 58], knn.md1)                 #混同表を作成する．
+confusionMatrix(conM, mode = "prec_recall")           #混同表の統計量を返す．
+
+spam[1:2, c(1:3, 54:57)]
+
+##データの標準化と一部変数の削除．
+##データを標準化して分類を行う
+Sdata<-scale(train_data[, -58])
+train1<-data.frame(Sdata, type=train_data$type)
+Stest<-scale(test_data[, -58])
+test1<-data.frame(Stest, type=test_data$type)
+knn.md2<-knn(train1[, -58], test1[, -58], train1[, 58], k=3)
+conM<-table(test1[, 58], knn.md2)
+confusionMatrix(conM, mode = "prec_recall")
+
+##変数 1～54 までを用いて分類を行ってみよう．
+knn.md3<-knn(train_data[, 1:54], test_data[, 1:54],train_data[, 58], k=3)
+conM<-table(test_data[, 58], knn.md3)
+confusionMatrix(conM, mode = "prec_recall")
+
+###train{caret}を用いたk近傍法のkのチューニング．
+install.packages("caret","MLmetrics", dep=TRUE)
+library(caret)
+library(MLmetrics)
+##train{caret}を用いて k についてチューニングを行う．
+##チューニングを行ったうえで，最善のモデルを最終の結果とする．
+knn.md4 <-train(type~., data = train_data,method = "knn",tuneGrid = expand.grid(k = c(1:10)),preProcess = c("center", "scale"),trControl =trainControl(method = "CV", classProbs = TRUE,summaryFunction = multiClassSummary))
+
+
+##計算された結果はknn.md4に保存され，評価指標の項目は次コマンドで確認できる．
+##knn.md4 を実行するとk=1～10の以下に示す指標の値を返し，最後に推奨するk の値を返す．
+##このkは正解率(Accuracy)に基づいて判断している．
+knn.md4
+plot(knn.md4)                            #グラフを作成して考察することもできる
+colnames(knn.md4$results)
+##主な学習結果を次に返す．
+round(knn.md4$results[, c("k", "AUC", "Accuracy", "Kappa","Precision", "Recall", "F1")], 3)
+
+##以後省略
+##テストデータを用いた予測は関数 predict を用いる．
+pre.knn<-predict(knn.md4, test_data)
+conM<-table(test_data[, 58], pre.knn)
+confusionMatrix(conM, mode = "prec_recall")
+
+####線形判別分析
+##線形判別分析法による分析結果を次に示す．
+library(MASS)
+lda.mod1<-lda(type~., data = train_data)
+##作成したモデルの評価指標を確認してみよう．
+pre.mod1<-predict(lda.mod1) #学習データの判別結果
+conM<-table(train_data[, 58], pre.mod1$class)#判別結果の混同表
+confusionMatrix(conM, mode = "prec_recall") #混同表の統計量
+
+##学習モデルを用いた予測
+pre.mod2<-predict(lda.mod1, test_data)
+conM<-table(test_data[, 58], pre.mod2$class)
+confusionMatrix(conM, mode = "prec_recall")
+
+lda.mod2 <-train(type~., data=train_data,
+                 method="lda",
+                 preProcess=c("center","scale"),
+                 trControl=trainControl(method="CV",
+                     classProbs = TRUE,
+                     summaryFunction = multiClassSummary)
+                 )
+
+round(lda.mod2$results[, c("AUC","Accuracy", "Kappa","Precision", "Recall", "F1")], 4)
+##学習モデルを用いた予測
+
+##判別関数の係数の棒グラフの作成
+##上記の関数trainでは係数を抜き出すことが面倒であるためlda{MASS}を用いる．
+spam.lda2<-lda(type~., data = spam)
+##求めた判別関数の係数は spam.lda2$scaling に保存している．
+coef1<-spam.lda2$scaling
+coef<-coef1[sort.list(coef1, dec=TRUE), ]
+par(mar=c(4, 10, 2, 2))
+barplot(coef[c(1:15, 43:57)], las=2, horiz =T, cex.names=0.9,
+col=c(rep(3:4,each=15)))
+text(-0.5, 10, "スパムメール\nの特徴要素", cex=1.5)
+text(-0.5, 25, "ノンスパムメール\nの特徴要素", cex=1.5)
+
+
+###二項ロジスティック回帰・判別の例．
+##多項ロジスティック判別関数 multinom{nnet} を用いる．
+##関数 multinom には，交差検証法がない．
+library(nnet)
+set.seed(10)
+mu1<-multinom(type~., data=train_data)
+coef(mu1)                                #係数を返す
+##主な判別係数の棒グラフを作成する
+coef1<-sort(coef(mu1)[-1])               #係数を小さい順位に並べ替える．
+coef2<-coef1[c(1:15, 43:57)]             #上・下位 15 個を抜き出す．
+par(mar=c(4, 10, 2, 2))
+barplot(coef2,horiz=T,las=2,col=c(rep(3,15),rep(4,15)))
+
+##データの判別
+pre.mu1<-predict(mu1)
+conM<-table(train_data[, 58], pre.mu1)
+confusionMatrix(conM, mode = "prec_recall")
+
+##テストデータの判別
+pre.mu2<-predict(mu1, test_data)
+conM<-table(test_data[, 58], pre.mu2)
+confusionMatrix(conM, mode="prec_recall")
+
+##交差検証法は，関数 train を用いることができる．
+##また，重みを求める際に，値が大きくなりすぎないようなペナルティをかけている．
+##このペナルティをどれぐらいにするかはデータに依存する．
+##関数trainではこれをチューニングできるように組み込んでいる．
+mu2 <-train(type~., data=train_data,
+            method="multinom",
+            preProcess=c("center","scale"),
+            trControl=trainControl(method = "CV", classProbs = TRUE,
+                summaryFunction=multiClassSummary)
+            )
+mu2                                　　 #計算結果を返す．
+                        
+round(mu2$results[, c("decay", "AUC", "Accuracy", "Kappa", "Precision", "Recall", "F1")], 4)
+
+pre.mu2<-predict(mu2, test_data[, -58])
+##混同行列および正解率，Kappa係数などを返す
+conM<-table(test_data[, 58], pre.mu2)
+confusionMatrix(conM, mode = "prec_recall")
+
+
+###ナイーブベイズ法の例．
+## naiveBayes{e1071}, NaiveBayes{klaR}, naive bayes{naivebayes},multinomial_naive_bayes{naivebayes} などがある．
+
+install.packages("naivebayes")
+library(naivebayes)
+nb1<-multinomial_naive_bayes(as.matrix(train_data[, -58]),train_data[, 58]) #スムージングα=0.5となっている．
+pre.nb1<-predict(nb1, as.matrix(test_data[, -58]),type = "class")
+conM<-table(test_data[, 58], pre.nb1)
+confusionMatrix(conM, mode = "prec_recall")
+
+
+###サポートベクターマシン
+##デフォルト設定のままの例を示す．
+## ksvm{kernlab}を用いて，パラメータのチューニングをせず，デフォルトのままに計算する．
+ksvm1<-ksvm(type~., data = train_data)
+pre.ksvm1<-predict(ksvm1, test_data)
+conM<-table(test_data[, 58], pre.ksvm1)
+confusionMatrix(conM, mode = "prec_recall")
+
+##方法 1：パラメータのチューニングはせず，デフォルトのまま計算する．
+##カーネルは，ガウスカーネル，シグマは自動推定，C=1である．
+fitControl<-trainControl(method = "CV", classProbs=TRUE,summaryFunction=multiClassSummary)
+tGrid <-expand.grid(sigma=c(1:4)*0.01, C=(1:5)*2)
+
+##このグリッドサーチには，15分前後の時間がかかる．
+start_time <-Sys.time() 　　　　　　　　　　　#スタート時点の時間
+ksvm2 <-train(type~., data = train_data,
+              method="svmRadial",
+              trControl=fitControl,
+              tuneGrid=tGrid
+              )
+end_time <-Sys.time()                         #終了のときの時間
+end_time-start_time                           #計算にかかった時間
+
+round(ksvm2$results[, c("sigma", "C", "AUC", "Accuracy","Kappa", "Precision", "Recall", "F1")], 4)
+
+ksvm2
+
+##ここではsigma=0.01， C=10 が最適となった．
+plot(ksvm2)                                  #グリッドサーチのグラフを作成する．
+pre.ksvm2<-predict(ksvm2, test_data)
+conM<-table(test_data[, 58], pre.ksvm2)
+confusionMatrix(conM, mode="prec_recall")
+
+#######10.3.6ツリーモデル
+##図10.11を作成する例．
+data<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sb3.csv"
+sb3<-read.csv(data, row.names=1,fileEncoding="CP932")
+dim(sb3)
+library(rpart)
+sb3.rp<-rpart(y~., sb3, minsplit=6)          #分類ルールを作成
+print(sb3.rp, digits =4)
+install.packages("rpart.plot"); library(rpart.plot)
+rpart.plot(sb3.rp, digits =4)                #図10.10の作成
+
+##spamデータのツリーモデルの例．
+spam.rp<-rpart(type~., train_data)
+pre.rp<-predict(spam.rp, test_data, type="class")
+conM<-table(test_data[, 58], pre.rp)
+confusionMatrix(conM, mode = "prec_recall")
+rpart.plot(spam.rp)
+
+#####10.3.7アンサンブル学習
+##AdaBoost によるスパムメールの分類の例(計算は1分前後必要である)．
+install.packages("adabag")
+library(adabag)
+tr.boost<-boosting(type~., data=train_data)
+##デフォルトでは coeflearn = "Breiman"であり,alpha=(1/2)*ln((1-err)/err)になっている．
+##引数 coeflearn = "Freund"の場合は，alpha=ln((1-err)/err)
+##引数 coeflearn = "Zhu"の場合は，alpha=ln((1-err)/err)+ln(nclasses-1)
+pre.boost<-predict(tr.boost, test_data[, -58])
+conM<-table(test_data[, 58], pre.boost$class)
+confusionMatrix(conM, mode = "prec_recall")
+dotplot(sort(tr.boost$importance),scales = list(y = list(cex=0.6)))    #変数重要度のグラフ作成
+
+
+###AdaBoostのチューニング
+##計算時間が1時間前後かかります．
+start_time <-Sys.time() 　　　　　　　　　  　　#スタート時点の時間
+##関数trainはAdaBoostの2つのアルゴリズムReal adaboostとAdaboost.M1を比較する．
+##デフォルトでは，繰り返しの計算回数を50, 100, 150回などとしてチューニングすることになっている．
+tr.boost <-train(type~., data = train_data,
+                 method ="adaboost",
+                 trcontrol= trainControl(method = "cv")
+                 )
+tr.boost
+end_time <-Sys.time()                           #終了のときの時間
+end_time-start_time                             #計算にかかった時間
+
+pre.boost<-predict(tr.boost, test_data[, -58])
+conM<-table(test_data[, 58], pre.boost)
+confusionMatrix(conM, mode = "prec_recall")
+
+
+###データspamを用いたランダムフォレストの例．
+install.packages("randomForest")
+library(randomForest)
+rf<-randomForest(type~., train_data, ntree=1000, imp=TRUE)
+pre.rf<-predict(rf, test_data)
+conM<-table(test_data[, 58], pre.rf)
+confusionMatrix(conM, mode = "prec_recall")
+
+plot(rf)                                         #誤判別率と木の数のグラフ作成
+text(400, rf$err.rate[1000, 1]+0.005, "OOB")     #ラベルの追加
+text(400, rf$err.rate[1000, 2]+0.005, "nonspam")
+text(400, rf$err.rate[1000, 3]+0.005, "spam")
+
+varImpPlot(rf)                                   #変数の重要度プロット
+##関数train の引数method="rf"を用いて，交差検証や木の数のチューニングなどを行うことも可能である．
+
+###ニューラルネットワークの例
+library(nnet)
+nnet1<-nnet(type~., size=5, train_data)
+pre.nnet<-predict(nnet1, test_data[, -58], type="class")
+conM<-table(test_data[, 58], pre.nnet)
+confusionMatrix(conM, mode = "prec_recall")
+
+##ニューラルネットワークのグラフ作成の例
+nnet2<-nnet(type~., size=5, train_data[, c(1:10, 58)])
+install.packages("NeuralNetTools")
+library(NeuralNetTools)
+plotnet(nnet2)                                   #線の太さは，重みの値に比例している．
+
+##2つの隠れ層の場合は，関数neuralnet{Neuralnet}を用いると図10.18のような図を作成することができる．
+install.packages("neuralnet")
+library(neuralnet)
+nnet3<-neuralnet(type~., train_data[c(1:100,4000:4100),c(1:5,58)], hidden = c(4, 3))
+plot(nnet3)
+
+##ニューラルネットワークのチューニングの例(計算に10分前後かかる)．
+ctrl = trainControl(method="cv", number=10)
+t.grid=expand.grid(size=3:10, decay=(0:6)*0.1)
+nnet4 <-train(type~., data=train_data, 
+　　　　　　　method="nnet",
+　　　　　　　trControl=ctrl, 
+　　　　　　　tuneGrid=t.grid)
+nnet4
+　
+
+##中間層のニューロン数は8，減衰重みは0.3のモデルが採用されている．
+plot(nnet4)
+
+##グラフで確認できるが，組み合わせによって精度に大きな差があることがわかる．
+pre.nnet<-predict(nnet4, test_data[, -58])
+conM<-table(test_data[, 58], pre.nnet)
+caret::confusionMatrix(conM, mode = "prec_recall")
+
+###10.4分類器の比較
+##スパムメールの例：複数分類器の比較(計算に十数分かかる)．
+#install.packages("mlr",dep=TRUE)
+
+install.packages(c("kknn","h2o","mlr"),dep=TRUE)
+library(kernlab)
+data(spam)
+library(mlr)
+library(kknn)
+##用いる分類器のリストを作成する．
+##次のスクリプトを実行する際，必要なパッケージのインストールを求めるメッセージが出る場合には，そのパッケージをインストールする．
+lrns = list(
+    makeLearner("classif.lda", id = "lda"),
+    makeLearner("classif.kknn", k = 3, id = "K3_NN"),
+    makeLearner("classif.cvglmnet",, id = "cvglmet"),
+    makeLearner("classif.multinom", id = "logit"),
+    makeLearner("classif.rpart", id = "rpart"),
+    makeLearner("classif.naiveBayes", id = "naiveB"),
+    makeLearner("classif.randomForest", id = "RF"),
+    makeLearner("classif.cforest", id = "cForest"),
+    #makeLearner("classif.randomForestSRC", id = "RF_SRC"),
+    makeLearner("classif.h2o.randomForest", id = "h2o_RF"),
+    makeLearner("classif.boosting", id = "AdaBoost"),
+    makeLearner("classif.C50", id = "C50"),
+    makeLearner("classif.ksvm", kernel="polydot", id = "svmPoly"),
+    makeLearner("classif.ksvm", kernel="rbfdot",id = "svmRadial"),
+    makeLearner("classif.h2o.gbm", id = "h2o_gbm"),
+    makeLearner("classif.xgboost", id = "XGBoost"),
+    makeLearner("classif.h2o.deeplearning", id = "h2o_deep")
+   )
+##分析のデータ形式をパッケージ用に作成しなおす．
+task<-makeClassifTask(data = spam, target = "type")
+
+##以下は5分割交差確認を行う.
+rdesc<-makeResampleDesc(method = "CV", iters=5)
+
+##計算時間は7分前後かかる．
+res<-benchmark(lrns, task, rdesc, measures = list(acc),show.info = FALSE)  #計算
+
+## 以下は10分割交差確認iters=10の結果である．
+plotBMRBoxplots(res)                                #箱ひげ図を作成する．
+Perf<-getBMRPerformances(res,as.df=TRUE)            #CVの正解率を渡す．
+boxplot(Perf[,4]~Perf[,2],las=2,xlab="",ylab="正解率")
+grid()            #正解率の平均値を返す．
+
+##10人の作家の小説の形態素データを用いた複数の分類器の比較(計算に6分前後かかる)．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/sakka10.csv"
+sakka10<-read.csv(path, row.names=1,fileEncoding="CP932")                #データの読み込み
+
+##データの変数は記号V2,V3のようになっている．
+##対応付けられる形態素ファイルは sakka10Var.csvとしてアップしている．
+lrns = list(
+    makeLearner("classif.kknn", k = 3, id = "K3 NN"),
+    makeLearner("classif.cvglmnet",, id = "cvglmet"),
+    makeLearner("classif.rpart", id = "rpart"),
+    makeLearner("classif.naiveBayes", id = "naiveB"),
+    makeLearner("classif.randomForest", id = "RF"),
+    makeLearner("classif.cforest", id = "cForest"),
+    #makeLearner("classif.randomForestSRC", id = "RF SRC"),
+    makeLearner("classif.h2o.randomForest", id = "h2o_RF"),
+    makeLearner("classif.boosting", id = "AdaBoost"),
+    makeLearner("classif.C50", id = "C50"),
+    makeLearner("classif.ksvm", kernel="polydot", id = "svmPoly"),
+    makeLearner("classif.ksvm", kernel="rbfdot",id = "svmRadial"),
+    makeLearner("classif.h2o.gbm", id = "h2o_gbm"),
+    makeLearner("classif.xgboost", id = "XGBoost"),
+   makeLearner("classif.h2o.deeplearning", id = "h2o_deep")
+  )
+task<-makeClassifTask(data = sakka10[,1:301], target ="authors")
+
+##計算に6分前後かかる
+start_time <- Sys.time()                      #スタート時点の時間
+res2<-benchmark(lrns,task, rdesc, measures = list(acc),
+                show.info = FALSE) 	      #計算
+end_time <- Sys.time()                        #終了のときの時間
+end_time - start_time  　                     #計算にかかった時間
+
+##以下は10分割交差確認 iters=10 の結果である．
+Perf<-getBMRPerformances(res2, as.df=TRUE)
+boxplot(Perf[,4]~Perf[,2], las=2, xlab="", ylab="正解率")
+grid()
+getBMRAggrPerformances(res2,as.df = TRUE)
+
+
+##5つの強分類器によるアンサンブル学習(計算に4分前後かかる)．
+install.packages("caretEnsemble")
+library(caretEnsemble)
+library(caret)
+set.seed(0)
+ensList<-c("ada","C5.0","rf","xgbTree")
+start_time <- Sys.time()                      #スタート時点の時間
+trCon<-trainControl(method = "repeatedcv", number=5,repeats=1,
+         savePredictions="final", classProbs=TRUE)
+mod<-caretList(type~.,data = spam,methodList=ensList,trControl = trCon)
+##パッケージのインストールを求めるメッセージが出たら，yesy を入力すること．
+(res<-caretEnsemble(mod))
+end_time <- Sys.time()                        #終了のときの時間
+end_time - start_time  　                     #計算にかかった時間
+plot(res)
+
+####################第11章経時的分析
+###重回帰分析
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/JYO113.csv"
+akuta<-read.csv(path, row.names=1,fileEncoding="CP932")             #データの読み込み
+akuta.lm0<-lm(y~., akuta)                     #モデルの作成
+akuta.lm1<-step(akuta.lm0)                    #変数の選択
+summary(akuta.lm1)                            #回帰結果の要約の表示
+
+##重要な変数のドットプロット作成
+coef<-sort(coefficients(akuta.lm1)[-1])
+par(mar=c(4, 10, 2, 2))
+dotchart(coef, gpch=21, bg=2, col=1, pt.cex=1.5, lcolor=1)
+#ドットプロットの作成
+install.packages("lattice")
+library(lattice)
+dotplot(coef,las=2,horiz =T,cex.names=0.9)
+
+###lassoの交差検証法によるλの推定
+install.packages("glmnet")
+library(glmnet)
+X<-as.matrix(akuta[, -1])                     #説明変数をマトリックスに変換
+Y<-as.matrix(akuta[, 1])                      #目的変数をマトリックスに変換
+aku.cv<-cv.glmnet(X, Y, alpha=1)              #交差検証をする
+aku.cv$lambda.min                             #残差2乗の和が最小値のλ
+log(aku.cv$lambda.min)                        #横軸の座標値
+plot(aku.cv)                                  #図11.4の作成
+    
+##予測は関数 predict を用いる
+predict(aku.cv, X)                           #学習に用いたデータXを用いている
+
+##ゼロより大きい係数を出力する．
+coef.min<-coef(aku.cv, s="lambda.min")       #誤差最小のモデルの係数
+coef.min [coef.min[, 1]>0, ]                 #ゼロより大きい係数を返す
+
+###Elastic net回帰におけるαとλについてのグリットサーチ
+#install.packages("caret")
+library(caret)
+set.seed(12345)
+cv10 = trainControl(method= "cv", number = 10)
+tuneGrid <-expand.grid(alpha=seq(0,1,0.1),lambda=seq(0,1,0.1))
+elnet <-caret::train(y ~., data=akuta,method="glmnet",trControl = cv10,tuneGrid = tuneGrid)
+elnet
+
+##RMSE(Root Mean Squared Error) 最小となるのはα=0.1, λ=0.4のとき．
+##標本サイズが小さいと実行の度に結果が揺れる．
+##この値で求められたモデルは elnet に保存されている．
+elnet[[6]]                                    #このように選択されたαとλのみを返すこともできる．
+
+##予測は次のように行う．
+predict(elnet)                                #学習データを用いた予測値を返す
+
+##モデルに寄与度が高い重要な項目は以下のように返すことができる．
+varImp(elnet)
+plot(varImp(elnet), 15,cex=1.5)               #上位15個のドットプロットを作成
+
+
+###モデルの回帰係数を返す．
+akuta.gl<-glmnet(X, Y, alpha=0.1, lambda=0.4)
+predict(akuta.gl, type="coef")
+
+###ランダムフォレストによる回帰分析の例
+library(randomForest)
+akuta.rf<-randomForest(y~., akuta)
+varImpPlot(akuta.rf)
+##主な 3 つの変数の考察
+par(mfrow=c(1, 3))
+lpa<-list(col = "red", lty = 2, lwd = 2)
+scatter.smooth(1:113, akuta$が.格助詞., lpars =lpa)
+scatter.smooth(1:113, akuta$は.副助詞., lpars =lpa)
+scatter.smooth(1:113, akuta$で.格助詞., lpars =lpa)
+
+
+dev.off()                               　　　 #作図デバイスを終了する
+
+###トピックの経時的分析
+install.packages("philentropy")
+library(philentropy) #jensen-shannon 距離を求めるときに用いる
+rekidai.path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/rekidai.csv"
+rekidai<-read.csv(rekidai.path, row.names=1,fileEncoding="CP932")
+rekidaip<-rekidai/apply(rekidai, 1, sum)       #相対頻度に変換
+    
+##クラスター分析で考察
+reki.jsd<-philentropy::distance(rekidaip, method = "jensen-shannon")
+rownames(reki.jsd)<-rownames(rekidaip)         #結果にラベルを付ける
+reki.hca<-hclust(as.dist(reki.jsd),"ward.D2")
+plot(reki.hca)
+rect.hclust(reki.hca, k = 3, border = "red")
+
+##トピックの数を推定する．図11.10の作成
+library(ldatuning)
+library(topicmodels)
+tun<-FindTopicsNumber(rekidai, topics = 2:6,
+　　　　 method = "Gibbs",
+　　　　 metrics = c("Griffiths2004", "CaoJuan2009","Arun2010", "Deveaud2014")
+　　　　　　　　)
+FindTopicsNumber_plot(tun)
+
+
+##stmによるトピックスの推定の例
+install.packages(c("tidyverse","magrittr","stringr","tm","stm"))
+library(tm)
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(stm)
+##データフレーム型のデータを関数 stm に適した構造に変換する．
+rekidai2<-as.matrix(rekidai[,-ncol(rekidai)])
+rekidai3<-as.DocumentTermMatrix(rekidai2,weighting=weightTf)
+rekidai_dfm <-readCorpus(rekidai3, type="slam")
+
+##読み込んだテキストの行のラベル前の 4 文字が所信表明演説の西暦の年度であるため，頭の 4 文字を切り取り目的変数ベクトルを作成する．
+year<-names(rekidai_dfm$documents) %>% str_sub(1,4)
+rekidai_dfm$meta <-list(Year=as.numeric(year))    #目的変数を格納する
+##関数 searchK を用いてトピック数の推定を行う．
+rekidaiK <-searchK(documents = rekidai_dfm$documents,
+vocab = rekidai_dfm$vocab, K = 2:8,data = rekidai_dfm$meta)
+plot(rekidaiK)                                    #推定結果のグラフの作成
+
+##経年情報を用いたトピックモデルのRスクリプトと結果．
+##トピック分析（線形推定)
+rekidai_stm <-stm(documents = rekidai_dfm$documents,
+                  vocab = rekidai_dfm$vocab, 
+                  K=3,prevalence =~Year,
+                  data = rekidai_dfm$meta, 
+                  verbose = FALSE)
+summary(rekidai_stm)
+
+topic_estimate <-estimateEffect(formula = 1:3~Year,
+                   stmobj = rekidai_stm,
+                   metadata = rekidai_dfm$meta)
+summary(topic_estimate)
+
+##トピック分析（非線形推定)
+rekidai_stm2 <-stm(documents=rekidai_dfm$documents,
+                   vocab = rekidai_dfm$vocab, K = 3,
+                   prevalence =~s(Year, 3),
+                   data = rekidai_dfm$meta, verbose=FALSE)
+
+##図 11.12 の作成．labeltype = c("prob", "frex", "lift", "score")
+plot(rekidai_stm, type="labels", labeltype = "frex")
+
+##トピックごとの回帰モデルの推定
+topic_estimate2 <-estimateEffect(formula = 1:3 ~s(Year, 3),stmobj = rekidai_stm2,metadata =rekidai_dfm$meta)
+summary(topic_estimate2)
+
+##図 11.13 の作成
+plot(topic_estimate2, "Year", method="continuous",topics = 1:3)
+
+## 2 つのトピック間の特徴語比較は次の関数で図示化できる．
+plot(rekidai_stm2, type="perspectives", topics=c(1,2))
+plot(rekidai_stm2, type="perspectives", topics=c(1,3))
+plot(rekidai_stm2, type="perspectives", topics=c(2,3))
+
+
+####################第12章特徴量選択
+##パッケージ FSelector を用いた変数の情報利得と情報利得比の計算の例．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/NatsuIzumi1.csv"
+NatsuIzumi1<-read.csv(path,row.names=1,fileEncoding="CP932")
+install.packages("FSelector")
+library(FSelector)
+
+##情報利得の計算
+weight<-information.gain(authors~., NatsuIzumi1[,1:10])
+weight
+
+subset <- cutoff.k(weight, 3)                    #大きい順の上位 4 つの変数を返す．
+subset
+
+##利得比の計算
+weight<-gain.ratio(authors~., NatsuIzumi1[,1:10])
+weight
+
+subset <-cutoff.k(weight, 3)
+subset
+
+##関数 cutoff.biggest.diff を用いて大きい順に変数項目が抽出できる．
+subset <-cutoff.biggest.diff(weight)
+subset
+
+##抽出したものを分類器に適応させるには次のようにすると便利である
+f<-as.simple.formula(subset, "authors")
+print(f)
+
+##選択した変数を用いた線形判別分析の例
+library(MASS)
+lda(f, NatsuIzumi1)
+
+##選択した変数を用いた主成分分析の例
+biplot(prcomp(NatsuIzumi1[,subset]))
+
+##AUC による特徴量選択の例．
+library(caret)
+ni.lab<-as.factor(NatsuIzumi1[,1])
+fvi<-filterVarImp(NatsuIzumi1[, 2:10],ni.lab)
+head(fvi)
+fvi               #値が大きいほど重要度が増す．
+ 
+fvis2<-fvi[sort.list(fvi[,1],dec=TRUE),]        #大きい順にソートする
+fvis2
+
+##Boruta を用いた変数選択の例．
+path<-"https://www.iwanami.co.jp/files/moreinfo/0298960/NatsuIzumi2.csv"
+NatsuIzumi2<-read.csv(path,row.names=1,fileEncoding="CP932")
+install.packages("Boruta")
+library(Boruta)
+NI<-as.matrix(NatsuIzumi2[,-1])                 #マトリクス型に変換
+NI.lab<-as.factor(NatsuIzumi2[,1])              #ラベルを因子型に変換
+Bor<-Boruta(NI[,2:14], NI.lab, ntree=10000)
+par(mar=c(8,4,4,4))
+plot(Bor,las=2,xlab="")                         #図12.1の作成
+grid()
+print(Bor)
+
+exatts<-attStats(Bor)                           #計算結果をデータフレームに返す
+
+## 6 番の列に各変数について決定(Confirmed)，暫定(Tentative)，棄却(Rejected)の情報が付与されている．この情報を用いて棄却された変数を除いたデータセットを次のように作成することができる．
+colLabCon<-rownames(exatts[exatts[,6]=="Confirmed",])
+colLabTen<-rownames(exatts[exatts[,6]=="Tentative",])
+NI2<-NI[,c(colLabCon,colLabTen)]                #選択された変数のデータセット
+
+##すべての変数を用いた結果を次に示す
+dim(NatsuIzumi2)
+Bor<-Boruta(NI, NI.lab, ntree=10000)
+print(Bor)
+
+##varImp{caret}を用いたRRFによる特徴量選択の例．
+library(caret)
+set.seed(1)
+rrf.Mod <-train(authors ~., data=NatsuIzumi2, method="RRF")
+rrf.Imp <-varImp(rrf.Mod, scale=TRUE)
+rrf.Imp
+
+plot(rrf.Imp, top = 20, main="Variable Importance")
+
+######################第13章分散表現
+##word2vec の構造確認．
+url<-"https://cran.r-project.org/src/contrib/Archive/softmaxreg/softmaxreg_1.2.tar.gz"
+pkgFile<-"softmaxreg_1.2.tar.gz"
+download.file(url=url,destfile=pkgFile)
+install.packages(pkgs=pkgFile, type="source", repos=NULL)
+unlink(pkgFile)
+
+library(softmaxreg)
+data(word2vec)
+dim(word2vec)
+word2vec[1:3,]                                 #語"expands","mobutu","contends"のベクトル
+
+###10人の記者による記事をベクトルに埋め込み，記者の推定を行う．
+##まずデータをダウンロードする
+path<-"https://archive.ics.uci.edu/ml/machine-learningdatabases/00217/C50.zip"
+loadURLData(path, getwd(), unzip = TRUE)
+
+##抽出した 10 人の名前のベクトルを作成する．
+authors10<-c("AaronPressman","AlanCrosby","AlexanderSmith","BenjaminKangLim","BernardHickey","BradDorfman","DarrenSchuettler","DavidLawder","EdnaFernandes","EricAuchard")
+
+##学習データセットから10人のテキスト(記事 500篇)を取り出す．
+C10Train<-document(path = paste("C50train/",authors10,sep=""), pattern="txt")
+
+## word2vec を使用して取り出した記事をベクトルに埋め込む
+C10TrainVec<-wordEmbed(C10Train, dictionary=word2vec)
+dim(C10TrainVec)                                #ベクトルの次元数は用いた辞書と同じである
+ 
+##テストデータセットから10人のテキスト記事500篇を取り出す．
+##取り出したテキストをword2vecでベクトル化する
+##テスト用のテキストをダウンロードする．
+C10Test <- document(path = paste("C50test/",authors10,sep=""), pattern = "txt")
+
+##テスト用のテキストをword2vecでベクトル化する．
+C10TestVec<-wordEmbed(C10Test, dictionary=word2vec)
+dim(C10TestVec)                                 #学習データと同じサイズである．
+
+##分類器SVMとRFで分類を行う．
+##学習用とテスト用のデータにおける記事を書いた記者の順番と記事数が同じであるため，ラベルは次のように付ける．
+##SVM による記者識別
+library(kernlab)
+C10Y <-as.factor(c(rep(authors10,each=50)))      #学習用ラベルを作成
+temp<-data.frame(y=C10Y,C10TrainVec)             #学習用データフレームを作成
+set.seed(10)
+res1 <-ksvm(y~.,temp,scaled=FALSE)
+pred1 <-predict(res1, C10TestVec)
+tab1<-table(pred1, C10Y)
+sum(diag(tab1))/sum(tab1)                        #正解率を求める
+
+##RF による記者識別
+library(randomForest)
+set.seed(10)
+res <-randomForest(y~.,temp)
+pred <-predict(res, C10TestVec)
+tab<-table(pred, C10Y )
+sum(diag(tab))/sum(tab)
+
+##BOW の出現頻度上位の語を用いた記者の識別．
+path2<-"https://www.iwanami.co.jp/files/moreinfo/0298960/c10bow.train.csv"
+c10bow.train<-read.csv(path2,row.names=1,fileEncoding="CP932")
+dim(c10bow.train)                                #1列は記者名である
+path2<-"https://www.iwanami.co.jp/files/moreinfo/0298960/c10bow.test.csv"
+c10bow.test<-read.csv (path2,row.names=1,fileEncoding="CP932")
+dim(c10bow.test)
+
+##ksvm による記者の識別を行う
+c10bow.train$y<-as.factor(c10bow.train$y)        #データの属性の変換
+set.seed(10)
+mod1<-ksvm(y~.,c10bow.train,scaled=FALSE)
+res3<-predict(mod1,c10bow.test)
+tab2<-table(res3, c10bow.train[,1])
+sum(diag(tab2))/sum(tab2)
+
+##RF による記者の識別を行う
+set.seed(10)
+mod2<-randomForest(y~.,c10bow.train)
+res4<-predict(mod2,c10bow.test)
+tab4<-table(res4,c10bow.train[,1])
+sum(diag(tab4))/sum(tab4)
+
+############################################
